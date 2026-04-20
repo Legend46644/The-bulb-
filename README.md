@@ -46,3 +46,5 @@ Don't die. (Seriously, it's that simple).
 
 Join the Community
 Want to suggest a "Dumb Tip" or report a bug? Join our Discord [Link Here] and follow us on Instagram [Link Here] for the latest updates and high-score highlights!
+
+our studio wishes all the supporters a happy day
