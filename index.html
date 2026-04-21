@@ -1,0 +1,3184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Bulb</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; width: 100%;
+    overflow: hidden; background: #111;
+    font-family: 'Nunito', sans-serif;
+    touch-action: none;
+  }
+
+  /* ═══════════════ MENU ═══════════════ */
+  #menuScreen {
+    position: fixed; inset: 0; z-index: 30;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background-color: #141414;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px);
+    background-size: 36px 36px;
+  }
+  #menuCanvas { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+  .settings-btn {
+    position: fixed; top: 16px; left: 16px; z-index: 50;
+    width: 46px; height: 46px;
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s, transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .settings-btn:active { transform: scale(0.92); }
+
+  /* Rooms button — top right of menu */
+  .rooms-btn {
+    position: fixed; top: 16px; right: 16px; z-index: 50;
+    width: 46px; height: 46px;
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s, transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rooms-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.13); }
+  .shop-btn {
+    position: fixed; right: 0; top: 50%; z-index: 50;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    background: #5dcc7a; border: none;
+    border-radius: 16px 0 0 16px;
+    padding: 20px 11px; cursor: pointer; color: #0a1f10;
+    box-shadow: -4px 0 28px rgba(93,204,122,0.4);
+    transition: background 0.2s, transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shop-btn .shop-icon { font-size: 1.35rem; }
+  .shop-btn .shop-label {
+    writing-mode: vertical-lr; transform: rotate(180deg);
+    font-size: 0.62rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 2px;
+  }
+  .shop-btn:active { transform: translateY(-50%) scale(0.95); background: #4ab868; }
+  .center {
+    position: relative; z-index: 20;
+    width: 100%; height: 100dvh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px 32px;
+  }
+  .title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: clamp(2.2rem, 11vw, 4.5rem);
+    color: #ffffff; letter-spacing: 4px; line-height: 1; text-align: center;
+    text-shadow: 0 0 40px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.5);
+    margin-bottom: 14px;
+    animation: fadeDown 0.65s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .name-wrap {
+    width: 100%; max-width: 360px; margin-bottom: 14px;
+    animation: fadeDown 0.65s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .name-input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.14);
+    border-radius: 16px; padding: 15px 20px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.1rem; font-weight: 700;
+    color: #ffffff; text-align: center; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none; backdrop-filter: blur(8px);
+  }
+  .name-input::placeholder { color: rgba(255,255,255,0.22); font-weight: 600; }
+  .name-input:focus { border-color: rgba(255,255,255,0.4); box-shadow: 0 0 0 3px rgba(255,255,255,0.07); }
+  .name-input.error { border-color: #ff5c5c; box-shadow: 0 0 0 3px rgba(255,92,92,0.15); }
+  .play-btn {
+    width: 100%; max-width: 360px; padding: 18px;
+    border-radius: 18px; border: none; cursor: pointer;
+    font-family: 'Orbitron', sans-serif; font-weight: 700;
+    font-size: 1.15rem; letter-spacing: 4px;
+    background: #5dcc7a; color: #0a1f10;
+    box-shadow: 0 6px 32px rgba(93,204,122,0.45);
+    transition: transform 0.15s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    margin-bottom: 14px;
+    animation: fadeUp 0.65s 0.2s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .play-btn:active { transform: scale(0.97); }
+  .modes-row {
+    display: flex; gap: 12px;
+    width: 100%; max-width: 360px;
+    animation: fadeUp 0.65s 0.3s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .mode-btn {
+    flex: 1; padding: 13px 8px; border-radius: 14px;
+    border: 1.5px solid rgba(255,255,255,0.08); cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.78rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1px;
+    background: rgba(0,0,0,0.6); color: rgba(255,255,255,0.45);
+    transition: all 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+    backdrop-filter: blur(6px); text-align: center;
+  }
+  .mode-btn .m-icon { font-size: 1.15rem; display: block; margin-bottom: 5px; }
+  .mode-btn.selected { background: rgba(0,0,0,0.82); border-color: #5dcc7a; color: #5dcc7a; box-shadow: 0 0 18px rgba(93,204,122,0.18); }
+  .mode-btn:active { transform: scale(0.95); }
+
+  /* ═══════════════ GAME ═══════════════ */
+  #gameScreen { position: fixed; inset: 0; z-index: 20; display: none; }
+  #gameCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  /* ═══════════════ HUD ═══════════════ */
+  #hud { position: fixed; inset: 0; z-index: 25; pointer-events: none; display: none; }
+  #massDisplay {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem; font-weight: 700; color: #fff;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 6px 18px;
+    letter-spacing: 2px; backdrop-filter: blur(6px);
+  }
+
+  /* Level badge — left of mass display */
+  #levelBadge {
+    position: absolute; top: 14px; right: 14px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem; font-weight: 700; color: #ffd166;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,209,102,0.3);
+    border-radius: 10px; padding: 6px 12px;
+    letter-spacing: 1px; backdrop-filter: blur(6px);
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+  }
+  #levelBadge .lv-num { font-size: 1rem; color: #ffd166; }
+  #levelBadge .lv-coins { font-size: 0.65rem; color: #5dcc7a; margin-top: 2px; }
+
+  /* XP bar — thin strip just below mass display */
+  #xpBar {
+    position: absolute; top: 56px; left: 50%; transform: translateX(-50%);
+    width: 160px; height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px; overflow: hidden;
+  }
+  #xpFill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #5dcc7a, #5bc8fa);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+
+  /* Leaderboard — top right */
+  #leaderboard {
+    position: absolute; top: 58px; right: 10px;
+    width: 118px;
+    background: rgba(0,0,0,0.42);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 6px 8px;
+    backdrop-filter: blur(8px);
+    display: none;
+  }
+  #leaderboard .lb-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.45rem; font-weight: 700;
+    letter-spacing: 2px; color: rgba(255,255,255,0.3);
+    text-transform: uppercase; margin-bottom: 5px;
+    text-align: center;
+  }
+  .lb-row {
+    display: flex; align-items: center; gap: 4px;
+    margin-bottom: 3px; font-size: 0.6rem; font-weight: 700;
+    color: rgba(255,255,255,0.55);
+  }
+  .lb-row.me { color: #5dcc7a; }
+  .lb-rank { font-family: 'Orbitron', sans-serif; font-size: 0.5rem; color: rgba(255,255,255,0.25); width: 12px; text-align: right; flex-shrink: 0; }
+  .lb-row.me .lb-rank { color: #5dcc7a; }
+  .lb-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-mass { font-family: 'Orbitron', sans-serif; font-size: 0.5rem; color: rgba(255,255,255,0.35); flex-shrink: 0; }
+  .lb-row.me .lb-mass { color: #5dcc7a; }
+  #backBtn {
+    position: absolute; top: 14px; left: 14px;
+    pointer-events: all;
+    background: rgba(0,0,0,0.55);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 12px; padding: 8px 16px;
+    color: #fff; font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem; font-weight: 800;
+    cursor: pointer; backdrop-filter: blur(6px);
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s;
+  }
+  #backBtn:active { background: rgba(0,0,0,0.8); }
+
+  /* Fixed joystick — bottom right */
+  #joystickBase {
+    position: absolute; bottom: 48px; right: 48px;
+    width: 110px; height: 110px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.18);
+    display: none; pointer-events: none;
+    backdrop-filter: blur(4px);
+  }
+  #joystickKnob {
+    position: absolute; width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(93,204,122,0.7); border: 2px solid #5dcc7a;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    pointer-events: none; box-shadow: 0 0 14px rgba(93,204,122,0.4);
+  }
+
+  /* Split button — bottom left */
+  #splitBtn {
+    position: absolute; bottom: 48px; left: 28px;
+    pointer-events: all; display: none;
+    background: rgba(93,204,122,0.15);
+    border: 2px solid #5dcc7a; border-radius: 50%;
+    width: 70px; height: 70px; color: #5dcc7a;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; backdrop-filter: blur(6px);
+    -webkit-tap-highlight-color: transparent;
+    align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  #splitBtn:active  { background: rgba(93,204,122,0.4); }
+  #splitBtn.cooldown { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.04); }
+
+  /* Eject button — above merge button, bottom left */
+  #ejectBtn {
+    position: absolute; bottom: 218px; left: 28px;
+    pointer-events: all; display: none;
+    background: rgba(255,209,102,0.15);
+    border: 2px solid #ffd166; border-radius: 50%;
+    width: 70px; height: 70px; color: #ffd166;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.55rem; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; backdrop-filter: blur(6px);
+    -webkit-tap-highlight-color: transparent;
+    align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  #ejectBtn:active { background: rgba(255,209,102,0.4); }
+
+  /* Merge button — just above split button, bottom left */
+  #mergeBtn {
+    position: absolute; bottom: 130px; left: 28px;
+    pointer-events: all; display: none;
+    background: rgba(91,200,250,0.15);
+    border: 2px solid #5bc8fa; border-radius: 50%;
+    width: 70px; height: 70px; color: #5bc8fa;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; backdrop-filter: blur(6px);
+    -webkit-tap-highlight-color: transparent;
+    align-items: center; justify-content: center;
+    transition: background 0.15s, opacity 0.2s;
+    opacity: 0.3; /* dimmed when only 1 piece */
+  }
+  #mergeBtn.active  { opacity: 1; }
+  #mergeBtn:active  { background: rgba(91,200,250,0.4); }
+
+  /* ═══════════════ DEATH SCREEN ═══════════════ */
+  /* Slides in from transparent when the player dies */
+  #deathScreen {
+    position: fixed; inset: 0; z-index: 40;
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.78);
+    backdrop-filter: blur(6px);
+    animation: fadeIn 0.4s ease both;
+  }
+  #deathScreen.show { display: flex; }
+  .death-card {
+    background: rgba(20,20,20,0.95);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 28px; padding: 40px 36px;
+    text-align: center; max-width: 320px; width: 90%;
+    animation: popIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .death-emoji { font-size: 3rem; margin-bottom: 10px; display: block; }
+  .death-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.9rem; color: #ff6b6b;
+    margin-bottom: 6px; letter-spacing: 1px;
+  }
+  .death-eaten-by {
+    font-size: 0.85rem; color: rgba(255,255,255,0.45);
+    font-weight: 600; margin-bottom: 22px;
+  }
+  .death-eaten-by span { color: #fff; font-weight: 800; }
+  .death-stats {
+    display: flex; gap: 16px; justify-content: center;
+    margin-bottom: 28px;
+  }
+  .death-stat {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 12px 18px;
+    flex: 1;
+  }
+  .death-stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.3rem; font-weight: 700; color: #5dcc7a;
+    display: block;
+  }
+  .death-stat-lbl {
+    font-size: 0.65rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.35); margin-top: 3px; display: block;
+  }
+  .death-btn-row { display: flex; gap: 12px; }
+  .death-tip {
+    margin-top: 16px; padding: 12px 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; text-align: center;
+  }
+  .death-tip-label {
+    font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 2px; color: rgba(255,255,255,0.25);
+    margin-bottom: 5px; display: block;
+  }
+  .death-tip-text {
+    font-size: 0.8rem; font-weight: 700;
+    color: rgba(255,255,255,0.6); line-height: 1.5;
+    font-style: italic;
+  }
+  .death-btn {
+    flex: 1; padding: 14px 10px; border-radius: 14px; border: none;
+    cursor: pointer; font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 2px;
+    transition: transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .death-btn:active { transform: scale(0.96); }
+  .death-btn.primary { background: #5dcc7a; color: #0a1f10; }
+  .death-btn.secondary {
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* ═══════════════ SHOP SCREEN ═══════════════ */
+  #shopScreen {
+    position: fixed; inset: 0; z-index: 35;
+    display: none; flex-direction: column;
+    background: #0e0e0e;
+    font-family: 'Nunito', sans-serif;
+  }
+  .shop-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+  }
+  .shop-header-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: 3px;
+  }
+  .shop-coin-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,209,102,0.1);
+    border: 1px solid rgba(255,209,102,0.25);
+    border-radius: 999px; padding: 6px 14px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem; font-weight: 700; color: #ffd166;
+  }
+  .shop-close {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 8px 14px;
+    color: #fff; font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem; font-weight: 800;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .shop-tabs {
+    display: flex; gap: 8px; padding: 12px 16px 0;
+    flex-shrink: 0;
+  }
+  .shop-tab {
+    flex: 1; padding: 8px 4px; border-radius: 10px;
+    border: 1.5px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.4);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.7rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1px;
+    cursor: pointer; text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+  }
+  .shop-tab.active {
+    border-color: #5dcc7a; color: #5dcc7a;
+    background: rgba(93,204,122,0.08);
+  }
+  .shop-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; padding: 14px 16px;
+    overflow-y: auto; flex: 1;
+  }
+  .shop-item {
+    background: rgba(255,255,255,0.04);
+    border: 1.5px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 14px 10px;
+    text-align: center; cursor: pointer;
+    transition: all 0.18s; position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shop-item.owned  { border-color: rgba(93,204,122,0.4); }
+  .shop-item.active { border-color: #5dcc7a; background: rgba(93,204,122,0.1); box-shadow: 0 0 16px rgba(93,204,122,0.2); }
+  .shop-item-preview {
+    width: 52px; height: 52px; border-radius: 50%;
+    margin: 0 auto 10px; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 1.5rem;
+  }
+  .shop-item-name {
+    font-size: 0.75rem; font-weight: 800; color: #fff;
+    margin-bottom: 4px;
+  }
+  .shop-item-price {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem; color: #ffd166;
+  }
+  .shop-item-price.free { color: #5dcc7a; }
+  .shop-item-badge {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 0.6rem; font-weight: 800;
+    padding: 2px 6px; border-radius: 6px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .shop-item-badge.equipped { background: #5dcc7a; color: #0a1f10; }
+  .shop-item-badge.owned    { background: rgba(255,255,255,0.15); color: #fff; }
+
+  @media (max-height: 640px) {
+    .shop-grid { gap: 8px; padding: 10px 12px; }
+    .shop-item { padding: 10px 8px; }
+    .shop-item-preview { width: 42px; height: 42px; margin-bottom: 6px; }
+  }
+  .toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: rgba(8,8,8,0.93);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 10px 22px;
+    font-size: 0.85rem; font-weight: 700; color: #fff;
+    opacity: 0; transition: all 0.28s ease;
+    pointer-events: none; white-space: nowrap;
+    z-index: 200; backdrop-filter: blur(10px);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-22px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  /* ═══════════════ ROOM SCREEN ═══════════════ */
+  #roomScreen {
+    position: fixed; inset: 0; z-index: 35; display: none;
+    flex-direction: column; background: #0e0e0e;
+    font-family: 'Nunito', sans-serif; overflow-y: auto;
+  }
+  .room-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .room-header-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: 3px;
+  }
+  .room-close {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 8px 14px;
+    color: #fff; font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem; font-weight: 800;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .room-body { padding: 24px 20px; display: flex; flex-direction: column; gap: 16px; }
+  .room-option {
+    background: rgba(255,255,255,0.04);
+    border: 1.5px solid rgba(255,255,255,0.08);
+    border-radius: 20px; padding: 24px 20px;
+    cursor: pointer; text-align: center;
+    transition: all 0.18s; -webkit-tap-highlight-color: transparent;
+  }
+  .room-option:active { transform: scale(0.97); }
+  .room-option.create { border-color: #5dcc7a; }
+  .room-option.join   { border-color: #5bc8fa; }
+  .room-option-icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+  .room-option-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.95rem; font-weight: 700; color: #fff;
+    letter-spacing: 2px; margin-bottom: 6px;
+  }
+  .room-option-sub { font-size: 0.78rem; color: rgba(255,255,255,0.4); }
+  .room-input-wrap { margin-top: 12px; }
+  .room-input {
+    width: 100%; background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.14);
+    border-radius: 14px; padding: 14px 18px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.4rem; font-weight: 700;
+    color: #fff; text-align: center; outline: none; letter-spacing: 6px;
+    -webkit-appearance: none;
+  }
+  .room-input:focus { border-color: #5bc8fa; }
+  .room-btn {
+    width: 100%; padding: 16px; border-radius: 14px; border: none;
+    font-family: 'Orbitron', sans-serif; font-size: 0.9rem;
+    font-weight: 700; letter-spacing: 2px; cursor: pointer;
+    margin-top: 12px; -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s;
+  }
+  .room-btn:active { transform: scale(0.97); }
+  .room-btn.green { background: #5dcc7a; color: #0a1f10; }
+  .room-btn.blue  { background: #5bc8fa; color: #0a1020; }
+  .room-status {
+    text-align: center; font-size: 0.82rem;
+    color: rgba(255,255,255,0.5); margin-top: 8px; min-height: 20px;
+  }
+
+  /* ═══════════════ LOBBY SCREEN ═══════════════ */
+  #lobbyScreen {
+    position: fixed; inset: 0; z-index: 36; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    background: #0a0a0a;
+  }
+  .lobby-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem; font-weight: 700; color: #fff;
+    letter-spacing: 3px; margin-bottom: 6px;
+  }
+  .lobby-code {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.4rem; font-weight: 900; color: #5dcc7a;
+    letter-spacing: 8px; margin-bottom: 6px;
+  }
+  .lobby-code-label {
+    font-size: 0.7rem; color: rgba(255,255,255,0.3);
+    text-transform: uppercase; letter-spacing: 2px; margin-bottom: 28px;
+  }
+  .lobby-players {
+    width: 90%; max-width: 360px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px; padding: 16px;
+    margin-bottom: 24px; min-height: 200px;
+  }
+  .lobby-player-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    animation: fadeUp 0.3s ease both;
+  }
+  .lobby-player-row:last-child { border-bottom: none; }
+  .lobby-player-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  }
+  .lobby-player-name {
+    font-size: 0.9rem; font-weight: 700; color: #fff; flex: 1;
+  }
+  .lobby-player-badge {
+    font-size: 0.65rem; color: rgba(255,255,255,0.35);
+    font-family: 'Orbitron', sans-serif; letter-spacing: 1px;
+  }
+  .lobby-waiting {
+    font-size: 0.75rem; color: rgba(255,255,255,0.3);
+    text-align: center; padding: 20px; letter-spacing: 1px;
+  }
+  .lobby-start-btn {
+    width: 90%; max-width: 360px; padding: 18px;
+    border-radius: 16px; border: none;
+    font-family: 'Orbitron', sans-serif; font-size: 1rem;
+    font-weight: 700; letter-spacing: 3px;
+    background: #5dcc7a; color: #0a1f10;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s; display: none;
+  }
+  .lobby-start-btn:active { transform: scale(0.97); }
+  .lobby-leave-btn {
+    margin-top: 14px; background: none; border: none;
+    color: rgba(255,255,255,0.3); font-family: 'Nunito', sans-serif;
+    font-size: 0.8rem; cursor: pointer;
+  }
+
+  @media (max-height: 640px) {
+    .title { font-size: clamp(2.2rem, 12vw, 3.5rem); margin-bottom: 10px; }
+    .play-btn { padding: 14px; font-size: 1.15rem; margin-bottom: 10px; }
+    .mode-btn { padding: 10px 8px; }
+  }
+
+  /* ═══════════════ SETTINGS SCREEN ═══════════════ */
+  #settingsScreen {
+    position: fixed; inset: 0; z-index: 35;
+    display: none; flex-direction: column;
+    background: #0e0e0e; font-family: 'Nunito', sans-serif;
+    overflow-y: auto;
+  }
+  .settings-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;
+  }
+  .settings-header-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: 3px;
+  }
+  .settings-close {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 8px 14px;
+    color: #fff; font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem; font-weight: 800;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .settings-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .settings-section-label {
+    font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 2px; color: rgba(255,255,255,0.3); margin-bottom: 2px;
+  }
+  .settings-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px; overflow: hidden;
+  }
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row-left { display: flex; flex-direction: column; gap: 2px; }
+  .settings-row-title { font-size: 0.9rem; font-weight: 700; color: #fff; }
+  .settings-row-sub   { font-size: 0.72rem; color: rgba(255,255,255,0.35); }
+  .toggle { position: relative; width: 48px; height: 26px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; cursor: pointer;
+    background: rgba(255,255,255,0.12); border-radius: 999px; transition: background 0.2s;
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px; transition: transform 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: #5dcc7a; }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(22px); }
+  .settings-action {
+    padding: 14px 18px; border-radius: 12px; border: none;
+    font-family: 'Nunito', sans-serif; font-size: 0.85rem; font-weight: 800;
+    cursor: pointer; width: 100%; text-align: left;
+    -webkit-tap-highlight-color: transparent; transition: opacity 0.15s;
+  }
+  .settings-action:active { opacity: 0.7; }
+  .settings-action.danger { background: rgba(255,92,92,0.1); color: #ff5c5c; border: 1px solid rgba(255,92,92,0.2); }
+  .settings-action.normal { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.08); }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px; padding: 14px 12px; text-align: center;
+  }
+  .stat-card-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem; font-weight: 700; color: #5dcc7a; display: block;
+  }
+  .stat-card-lbl {
+    font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 1.5px; color: rgba(255,255,255,0.3); margin-top: 4px; display: block;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ MENU ═══════════════ -->
+<div id="menuScreen">
+  <div class="grid-bg"></div>
+  <canvas id="menuCanvas"></canvas>
+  <button class="settings-btn" onclick="openSettings()">⚙️</button>
+  <button class="rooms-btn" onclick="openRooms()">🌐</button>
+  <button class="shop-btn" onclick="openShop()">
+    <span class="shop-icon">🛍️</span>
+    <span class="shop-label">Shop</span>
+  </button>
+  <div class="center">
+    <div class="title">THE BULB</div>
+    <div class="name-wrap">
+      <input class="name-input" id="nameInput" type="text" maxlength="20"
+        placeholder="Enter your name…" autocomplete="off" spellcheck="false"/>
+    </div>
+    <button class="play-btn" onclick="startGame()">▶ PLAY</button>
+    <div class="modes-row">
+      <button class="mode-btn selected" data-mode="ffa" onclick="selectMode(this)">
+        <span class="m-icon">⚔️</span>Free for All
+      </button>
+      <button class="mode-btn" data-mode="team" onclick="selectMode(this)">
+        <span class="m-icon">🛡️</span>Team Mode
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SHOP ═══════════════ -->
+<div id="shopScreen">
+  <div class="shop-header">
+    <div class="shop-header-title">🛍 SHOP</div>
+    <div class="shop-coin-badge">🪙 <span id="shopCoinDisplay">0</span></div>
+    <button class="shop-close" onclick="closeShop()">✕ BACK</button>
+  </div>
+  <div class="shop-tabs">
+    <button class="shop-tab active" onclick="switchTab('colors')">Colors</button>
+    <button class="shop-tab" onclick="switchTab('animated')">Animated</button>
+    <button class="shop-tab" onclick="switchTab('badges')">Badges</button>
+    <button class="shop-tab" onclick="switchTab('custom')">Custom</button>
+  </div>
+  <div class="shop-grid" id="shopGrid"></div>
+</div>
+
+<!-- ═══════════════ SETTINGS ═══════════════ -->
+<div id="settingsScreen">
+  <div class="settings-header">
+    <div class="settings-header-title">⚙ SETTINGS</div>
+    <button class="settings-close" onclick="closeSettings()">✕ BACK</button>
+  </div>
+  <div class="settings-body">
+
+    <div class="settings-section-label">Gameplay</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">Sound Effects</span>
+          <span class="settings-row-sub">Eating, dying, level up</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="sfxToggle" onchange="saveSetting('sfx', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">Show Leaderboard</span>
+          <span class="settings-row-sub">Top 10 during gameplay</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="lbToggle" checked onchange="saveSetting('leaderboard', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">Show XP Bar</span>
+          <span class="settings-row-sub">Progress bar below mass</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="xpToggle" checked onchange="saveSetting('xpbar', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-section-label">PC Controls</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">🖱 Mouse</span>
+          <span class="settings-row-sub">Move your blob</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:rgba(255,255,255,0.35);letter-spacing:1px">MOVE</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">⌨ Space</span>
+          <span class="settings-row-sub">Split into two blobs</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#5dcc7a;letter-spacing:1px">SPLIT</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">⌨ M</span>
+          <span class="settings-row-sub">Merge all pieces into one</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#5bc8fa;letter-spacing:1px">MERGE</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">⌨ W</span>
+          <span class="settings-row-sub">Shoot a mass blob forward</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#ffd166;letter-spacing:1px">EJECT</span>
+      </div>
+    </div>
+
+    <div class="settings-section-label">Mobile Controls</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">👆 Right thumb</span>
+          <span class="settings-row-sub">Joystick — steer your blob</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:rgba(255,255,255,0.35);letter-spacing:1px">MOVE</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">🟢 SPLIT button</span>
+          <span class="settings-row-sub">Bottom left — tap to split</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#5dcc7a;letter-spacing:1px">SPLIT</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">🔵 MERGE button</span>
+          <span class="settings-row-sub">Above split — tap to merge</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#5bc8fa;letter-spacing:1px">MERGE</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">🟡 EJECT button</span>
+          <span class="settings-row-sub">Above merge — shoot mass</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#ffd166;letter-spacing:1px">EJECT</span>
+      </div>
+    </div>
+
+    <div class="settings-section-label">Profile</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">Your Name</span>
+          <span class="settings-row-sub" id="settingsNameDisplay">—</span>
+        </div>
+        <button class="settings-action normal" style="width:auto;padding:8px 14px;font-size:0.75rem"
+          onclick="resetName()">RESET</button>
+      </div>
+    </div>
+
+    <div class="settings-section-label">Your Stats</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-card-val" id="statLevel">1</span>
+        <span class="stat-card-lbl">Level</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card-val" id="statCoins">0</span>
+        <span class="stat-card-lbl">Coins</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card-val" id="statBestMass">0</span>
+        <span class="stat-card-lbl">Best Mass</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card-val" id="statGames">0</span>
+        <span class="stat-card-lbl">Games Played</span>
+      </div>
+    </div>
+
+    <div class="settings-section-label">Danger Zone</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="settings-action danger" onclick="resetProgress()">
+        🗑 Reset XP, Level &amp; Coins
+      </button>
+      <button class="settings-action danger" onclick="resetEverything()">
+        ⚠️ Reset Everything (full wipe)
+      </button>
+    </div>
+
+    <!-- Credits -->
+    <div style="margin-top:8px;padding:20px 16px;text-align:center;border-top:1px solid rgba(255,255,255,0.06)">
+      <div style="font-family:'Orbitron',sans-serif;font-size:0.7rem;font-weight:700;color:#5dcc7a;letter-spacing:2px;margin-bottom:6px">THE BULB</div>
+      <div style="font-size:0.78rem;color:rgba(255,255,255,0.5);line-height:1.7">
+        Created by <span style="color:#fff;font-weight:800">Legend46644</span><br>
+        &amp; his friend <span style="color:#5dcc7a;font-weight:800">Claude AI</span>
+      </div>
+      <div style="margin-top:10px;font-size:0.62rem;color:rgba(255,255,255,0.2);letter-spacing:1px">Built with ❤️ — All stages complete</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ ROOM SCREEN ═══════════════ -->
+<div id="roomScreen">
+  <div class="room-header">
+    <div class="room-header-title">🌐 ROOMS</div>
+    <button class="room-close" onclick="closeRooms()">✕ BACK</button>
+  </div>
+  <div class="room-body">
+    <!-- Create room -->
+    <div class="room-option create" onclick="showCreate()">
+      <span class="room-option-icon">➕</span>
+      <div class="room-option-title">CREATE ROOM</div>
+      <div class="room-option-sub">Start a private game and share your code</div>
+    </div>
+
+    <!-- Join room -->
+    <div class="room-option join" onclick="showJoin()">
+      <span class="room-option-icon">🔗</span>
+      <div class="room-option-title">JOIN ROOM</div>
+      <div class="room-option-sub">Enter a friend's 6-digit code</div>
+    </div>
+
+    <!-- Join input — hidden until join is tapped -->
+    <div id="joinPanel" style="display:none">
+      <div class="room-input-wrap">
+        <input class="room-input" id="roomCodeInput" type="text"
+          maxlength="6" placeholder="XXXXXX"
+          autocomplete="off" spellcheck="false"
+          oninput="this.value=this.value.toUpperCase()"/>
+      </div>
+      <button class="room-btn blue" onclick="joinRoom()">JOIN GAME</button>
+      <div class="room-status" id="joinStatus"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ LOBBY SCREEN ═══════════════ -->
+<div id="lobbyScreen">
+  <div class="lobby-title">PRIVATE ROOM</div>
+  <div class="lobby-code" id="lobbyCode">——————</div>
+  <div class="lobby-code-label" id="lobbyCodeLabel">Share this code with friends</div>
+  <div class="lobby-players" id="lobbyPlayerList">
+    <div class="lobby-waiting">Waiting for players…</div>
+  </div>
+  <button class="lobby-start-btn" id="lobbyStartBtn" onclick="hostStartGame()">
+    ▶ START GAME
+  </button>
+  <button class="lobby-leave-btn" onclick="leaveRoom()">Leave room</button>
+</div>
+
+<!-- ═══════════════ GAME ═══════════════ -->
+<div id="gameScreen">
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="massDisplay">MASS: 0</div>
+  <div id="xpBar"><div id="xpFill"></div></div>
+  <div id="levelBadge">
+    <span class="lv-num" id="levelNum">LV 1</span>
+    <span class="lv-coins" id="coinNum">🪙 0</span>
+  </div>
+  <div id="leaderboard">
+    <div class="lb-title">⚔ TOP 10</div>
+    <div id="lbRows"></div>
+  </div>
+  <button id="backBtn" onclick="goToMenu()">← MENU</button>
+  <div id="joystickBase"><div id="joystickKnob"></div></div>
+  <button id="splitBtn">SPLIT</button>
+  <button id="mergeBtn">MERGE</button>
+  <button id="ejectBtn">EJECT</button>
+</div>
+
+<!-- ═══════════════ DEATH SCREEN ═══════════════ -->
+<div id="deathScreen">
+  <div class="death-card">
+    <span class="death-emoji">💀</span>
+    <div class="death-title">YOU WERE EATEN!</div>
+    <div class="death-eaten-by">Consumed by <span id="killerName">—</span></div>
+    <div class="death-stats">
+      <div class="death-stat">
+        <span class="death-stat-val" id="finalMass">0</span>
+        <span class="death-stat-lbl">Final Mass</span>
+      </div>
+      <div class="death-stat">
+        <span class="death-stat-val" id="blobsEaten">0</span>
+        <span class="death-stat-lbl">Blobs Eaten</span>
+      </div>
+    </div>
+    <div class="death-btn-row">
+      <button class="death-btn primary" onclick="startGame()">PLAY AGAIN</button>
+      <button class="death-btn secondary" onclick="goToMenu()">MENU</button>
+    </div>
+    <div class="death-tip">
+      <span class="death-tip-label">💡 Pro Tip</span>
+      <span class="death-tip-text" id="deathTip">Try not to die next time.</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────────────────────
+//  HI-DPI CANVAS SETUP
+//  On retina screens, we multiply canvas pixel dimensions by the
+//  device pixel ratio so text and edges are crisp, not blurry.
+// ─────────────────────────────────────────────────────────────
+function setupHiDPICanvas(canvas) {
+  const dpr  = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return ctx;
+}
+
+const COLORS = [
+  '#5dcc7a','#5bc8fa','#ff6b9d','#ffd166',
+  '#a29bfe','#ff9f43','#00cec9','#fd79a8',
+  '#e17055','#74b9ff','#55efc4','#fdcb6e'
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  MENU BACKGROUND ANIMATION
+// ═══════════════════════════════════════════════════════════════
+const menuCanvas = document.getElementById('menuCanvas');
+menuCanvas.style.width = '100%'; menuCanvas.style.height = '100%';
+const mCtx = setupHiDPICanvas(menuCanvas);
+let mW = window.innerWidth, mH = window.innerHeight;
+
+window.addEventListener('resize', () => {
+  mW = window.innerWidth; mH = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  menuCanvas.width  = mW * dpr;
+  menuCanvas.height = mH * dpr;
+  mCtx.setTransform(dpr, 0, 0, dpr, 0, 0); // reset + scale, no accumulation
+});
+
+const mFoods = Array.from({ length: 130 }, () => ({
+  x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
+  r: 3.5 + Math.random() * 3, color: COLORS[Math.floor(Math.random() * COLORS.length)],
+  alpha: 0.55 + Math.random() * 0.45,
+}));
+const BLOB_NAMES_MENU = ['Zak','Mia','Rex','Sky','Lux','Dot','Kai','Neo','Ivy','Ash','Bo','Rio','Ace','Jay'];
+const mBlobs = BLOB_NAMES_MENU.map((name, i) => ({
+  name, color: COLORS[i % COLORS.length],
+  x: 80 + Math.random() * (window.innerWidth - 160),
+  y: 80 + Math.random() * (window.innerHeight - 160),
+  r: 12 + Math.random() * 36, vx: (Math.random()-0.5)*1.3, vy: (Math.random()-0.5)*1.3,
+  targetFood: null,
+}));
+
+let menuAnimating = true;
+function animateMenu() {
+  if (!menuAnimating) return;
+  mCtx.clearRect(0, 0, mW, mH);
+  mFoods.forEach(f => {
+    mCtx.globalAlpha = f.alpha * 0.65;
+    mCtx.beginPath(); mCtx.arc(f.x, f.y, f.r, 0, Math.PI*2);
+    mCtx.fillStyle = f.color; mCtx.fill();
+  });
+  mCtx.globalAlpha = 1;
+  mBlobs.forEach(blob => {
+    const spd = Math.max(0.3, 1.55 - blob.r * 0.016);
+    if (blob.targetFood === null) {
+      let best=0, bestD=Infinity;
+      mFoods.forEach((f,i) => { const d=Math.hypot(f.x-blob.x,f.y-blob.y); if(d<bestD){bestD=d;best=i;} });
+      blob.targetFood = best;
+    }
+    const tf = mFoods[blob.targetFood];
+    const dx=tf.x-blob.x, dy=tf.y-blob.y, dist=Math.hypot(dx,dy)||1;
+    if (dist < blob.r+tf.r+2) {
+      blob.r=Math.min(blob.r+0.9,82); tf.x=Math.random()*mW; tf.y=Math.random()*mH; blob.targetFood=null;
+    } else { blob.vx+=(dx/dist)*0.13; blob.vy+=(dy/dist)*0.13; }
+    const mag=Math.hypot(blob.vx,blob.vy)||1;
+    if(mag>spd){blob.vx=(blob.vx/mag)*spd;blob.vy=(blob.vy/mag)*spd;}
+    blob.x+=blob.vx; blob.y+=blob.vy;
+    if(blob.x-blob.r<0){blob.x=blob.r;blob.vx*=-1;}
+    if(blob.x+blob.r>mW){blob.x=mW-blob.r;blob.vx*=-1;}
+    if(blob.y-blob.r<0){blob.y=blob.r;blob.vy*=-1;}
+    if(blob.y+blob.r>mH){blob.y=mH-blob.r;blob.vy*=-1;}
+    drawBlob(mCtx, blob.x, blob.y, blob.r, blob.color, blob.name);
+  });
+  requestAnimationFrame(animateMenu);
+}
+animateMenu();
+
+// ─────────────────────────────────────────────────────────────
+//  DRAW BLOB — shared helper used by both menu and game canvas
+//  Draws an ellipse (rx > ry) so the blob looks grounded/flat
+//  rather than like a floating balloon. Crisp name text on top.
+// ─────────────────────────────────────────────────────────────
+//  COLOR WITH ALPHA — works for hex AND rgb(...) AND hsl(...)
+//  Appending hex like '#5dcc7a' + '28' works, but
+//  'rgb(255,0,0)' + '28' = 'rgb(255,0,0)28' which is INVALID.
+//  This helper converts any color to rgba(r,g,b,alpha) safely.
+// ─────────────────────────────────────────────────────────────
+const _colorCanvas = document.createElement('canvas');
+_colorCanvas.width = _colorCanvas.height = 1;
+const _colorCtx = _colorCanvas.getContext('2d');
+
+function colorWithAlpha(color, alpha) {
+  // Fast path: hex colors can just have 2-char alpha appended
+  if (color && color[0] === '#' && color.length <= 7) {
+    const a = Math.round(alpha * 255).toString(16).padStart(2, '0');
+    return color + a;
+  }
+  // For rgb/hsl/any other format — parse via canvas then rebuild as rgba
+  _colorCtx.clearRect(0, 0, 1, 1);
+  _colorCtx.fillStyle = color || '#5dcc7a';
+  _colorCtx.fillRect(0, 0, 1, 1);
+  const [r, g, b] = _colorCtx.getImageData(0, 0, 1, 1).data;
+  return `rgba(${r},${g},${b},${alpha.toFixed(3)})`;
+}
+
+// ─────────────────────────────────────────────────────────────
+function drawBlob(ctx, x, y, r, color, name, glowColor, badge = '') {
+  const rx = r, ry = r * 0.88;
+  const angle = 0;
+  const gc = glowColor || color;
+
+  // Outer glow — use colorWithAlpha so rgb() colors don't crash
+  const glow = ctx.createRadialGradient(x, y, r*0.4, x, y, r*1.7);
+  glow.addColorStop(0, colorWithAlpha(gc, 0.16));
+  glow.addColorStop(1, 'transparent');
+  ctx.beginPath(); ctx.ellipse(x, y, rx*1.7, ry*1.7, angle, 0, Math.PI*2);
+  ctx.fillStyle = glow; ctx.fill();
+
+  // Main body
+  const body = ctx.createRadialGradient(x-rx*0.3, y-ry*0.3, r*0.05, x, y, r);
+  body.addColorStop(0, colorWithAlpha(color, 1.0));
+  body.addColorStop(1, colorWithAlpha(color, 0.67));
+  ctx.beginPath(); ctx.ellipse(x, y, rx, ry, angle, 0, Math.PI*2);
+  ctx.fillStyle = body; ctx.fill();
+
+  // Shine
+  ctx.beginPath(); ctx.ellipse(x-rx*0.28, y-ry*0.28, rx*0.22, ry*0.2, angle, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.32)'; ctx.fill();
+
+  // Name + badge drawn together inside the blob as one line e.g. "Legend 💀"
+  if (r > 8 && name) {
+    const fs = Math.floor(Math.min(r * 0.45, 16));
+    if (fs >= 6) {
+      const label = badge ? `${name} ${badge}` : name;
+      ctx.font = `800 ${fs}px Nunito, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillText(label, x+1, y+1);
+      ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fillText(label, x, y);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MENU UI LOGIC
+// ═══════════════════════════════════════════════════════════════
+const nameInput = document.getElementById('nameInput');
+const savedName = localStorage.getItem('bulb_player_name');
+if (savedName) nameInput.value = savedName;
+nameInput.addEventListener('input', () => {
+  localStorage.setItem('bulb_player_name', nameInput.value.trim());
+  nameInput.classList.remove('error');
+});
+let selectedMode = localStorage.getItem('bulb_mode') || 'ffa';
+document.querySelectorAll('.mode-btn').forEach(btn =>
+  btn.classList.toggle('selected', btn.dataset.mode === selectedMode)
+);
+function selectMode(el) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMode = el.dataset.mode;
+  localStorage.setItem('bulb_mode', selectedMode);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME ENGINE — Stage 3
+// ═══════════════════════════════════════════════════════════════
+const WORLD_SIZE  = 9000;  // much bigger arena — player can roam freely
+const FOOD_COUNT  = 1600;  // denser food so growing feels rewarding
+const BOT_COUNT   = 24;    // more bots to fill the larger space
+
+// Bot names — gives them personality and lets the death screen
+// show who ate the player, which feels much more alive.
+const BOT_NAMES = [
+  'Rex','Zara','Blot','Spike','Nova','Krill','Omen','Fuse',
+  'Lark','Dex','Wren','Axle','Cleo','Grim','Pix','Thorn','Vex','Mori'
+];
+
+const gameCanvas = document.getElementById('gameCanvas');
+gameCanvas.style.width = '100%'; gameCanvas.style.height = '100%';
+const gCtx = gameCanvas.getContext('2d');
+let gW = window.innerWidth, gH = window.innerHeight;
+
+function resizeGameCanvas() {
+  gW = window.innerWidth; gH = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  gameCanvas.width  = gW * dpr;
+  gameCanvas.height = gH * dpr;
+  gCtx.setTransform(dpr, 0, 0, dpr, 0, 0); // reset + scale in one call, no accumulation
+}
+resizeGameCanvas();
+let _resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(resizeGameCanvas, 100);
+});
+
+let cam         = { x: WORLD_SIZE/2, y: WORLD_SIZE/2, scale: 1 };
+let playerPieces = [];
+let player       = null;
+let bots         = [];
+let foodPellets = [];
+let ejectedMass  = [];
+let particles    = [];
+let viruses      = []; // spiky green cells — safe for small blobs, explodes large ones
+let gameRunning = false;
+let gameRAF    = null;
+let inputDir   = { x: 0, y: 0 };
+
+// ─────────────────────────────────────────────────────────────
+//  SPATIAL GRID — fast collision lookup
+//  Instead of checking every blob vs every food item (O(n²)),
+//  we divide the world into cells and only check nearby cells.
+// ─────────────────────────────────────────────────────────────
+const GRID_CELL = 200; // world units per cell
+const GRID_COLS = Math.ceil(WORLD_SIZE / GRID_CELL);
+
+function gridKey(wx, wy) {
+  const col = Math.floor(wx / GRID_CELL);
+  const row = Math.floor(wy / GRID_CELL);
+  return row * GRID_COLS + col;
+}
+
+function buildFoodGrid() {
+  const grid = new Map();
+  foodPellets.forEach((f, i) => {
+    const k = gridKey(f.x, f.y);
+    if (!grid.has(k)) grid.set(k, []);
+    grid.get(k).push(i);
+  });
+  return grid;
+}
+
+// Returns food indices in the same cell and its 8 neighbors
+function nearbyFoodIndices(wx, wy, foodGrid) {
+  const result = [];
+  const col = Math.floor(wx / GRID_CELL);
+  const row = Math.floor(wy / GRID_CELL);
+  for (let dc = -1; dc <= 1; dc++) {
+    for (let dr = -1; dr <= 1; dr++) {
+      const c = col + dc, r = row + dr;
+      if (c < 0 || r < 0) continue;
+      const k = r * GRID_COLS + c;
+      const bucket = foodGrid.get(k);
+      if (bucket) result.push(...bucket);
+    }
+  }
+  return result;
+}
+
+// Stats tracked during a session for the death screen
+let blobsEatenCount = 0;
+
+// ─────────────────────────────────────────────────────────────
+//  PARTICLES — tiny dots that burst when eating food/bots
+// ─────────────────────────────────────────────────────────────
+function spawnParticles(wx, wy, color, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.5 + Math.random() * 2.5;
+    particles.push({
+      x: wx, y: wy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: 2 + Math.random() * 2,
+      color, life: 1.0, // 1.0 = fully visible, fades to 0
+    });
+  }
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= 0.88; p.vy *= 0.88; // friction
+    p.life -= 0.04 * dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    const s = worldToScreen(p.x, p.y);
+    const sr = p.r * cam.scale;
+    if (sr < 0.5) return;
+    gCtx.globalAlpha = Math.max(0, p.life);
+    gCtx.beginPath();
+    gCtx.arc(s.x, s.y, sr, 0, Math.PI * 2);
+    gCtx.fillStyle = p.color;
+    gCtx.fill();
+  });
+  gCtx.globalAlpha = 1;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  XP / LEVEL / COINS — Stage 5
+//  XP is earned by eating food (+1) and bots (bonus).
+//  Each level requires more XP than the last.
+//  Levelling up rewards coins, saved to localStorage.
+// ─────────────────────────────────────────────────────────────
+let xp     = parseInt(localStorage.getItem('bulb_xp')    || '0');
+let level  = parseInt(localStorage.getItem('bulb_level') || '1');
+let coins  = parseInt(localStorage.getItem('bulb_coins') || '0');
+
+// XP needed to reach each level (index = level, value = total XP needed)
+const LEVEL_XP = [0,50,130,260,450,700,1050,1500,2100,2900,4000,
+                  5500,7500,10000,13500,18000,24000,32000,42000,55000];
+const COINS_PER_LEVEL = 30; // coins awarded each level up
+
+function xpForLevel(lv) {
+  return lv < LEVEL_XP.length ? LEVEL_XP[lv] : LEVEL_XP[LEVEL_XP.length-1] + (lv - LEVEL_XP.length + 1) * 8000;
+}
+
+function addXP(amount) {
+  xp += amount;
+  // Check for level up (can level up multiple times at once)
+  while (xp >= xpForLevel(level)) {
+    level++;
+    coins += COINS_PER_LEVEL * level;
+    localStorage.setItem('bulb_coins', coins);
+    showToast(`🎉 LEVEL ${level}! +${COINS_PER_LEVEL * level} 🪙`);
+    playSFX('levelup');
+  }
+  localStorage.setItem('bulb_xp', xp);
+  localStorage.setItem('bulb_level', level);
+}
+
+// ─────────────────────────────────────────────────────────────
+//  COORDINATE HELPERS
+// ─────────────────────────────────────────────────────────────
+function worldToScreen(wx, wy) {
+  return {
+    x: (wx - cam.x) * cam.scale + gW / 2,
+    y: (wy - cam.y) * cam.scale + gH / 2,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SPAWN FOOD PELLET — creates one pellet at a random world pos
+// ─────────────────────────────────────────────────────────────
+function spawnFood() {
+  return {
+    x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE,
+    r: 4 + Math.random() * 3,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SPAWN BOT
+//  All bots spawn small (radius 10–20) regardless of player size.
+//  They grow naturally by eating food and each other — just like
+//  the player does. Nobody ever spawns pre-grown.
+//  Speed is inversely proportional to mass: the tiniest blobs
+//  are the fastest (they can escape), the biggest are the slowest
+//  (they're powerful but lumbering). This gives smaller blobs a
+//  real fighting chance to flee rather than getting steamrolled.
+// ─────────────────────────────────────────────────────────────
+function spawnBot(index, _unused) {
+  const r = 10 + Math.random() * 10;
+  let x, y;
+  do {
+    x = 60 + Math.random() * (WORLD_SIZE - 120);
+    y = 60 + Math.random() * (WORLD_SIZE - 120);
+  } while (player && Math.hypot(x - player.x, y - player.y) < 700);
+
+  // In team mode: first half of bots = team 0 (player's team), rest = team 1 (enemies)
+  // In FFA: team = -1 (no teams, everyone is an enemy)
+  const team = (selectedMode === 'team') ? (index < BOT_COUNT / 2 ? 0 : 1) : -1;
+  const teamColor = (selectedMode === 'team')
+    ? (team === 0 ? '#5dcc7a' : '#ff6b9d')  // green = ally, pink = enemy
+    : COLORS[(index + 3) % COLORS.length];
+
+  return {
+    name:  BOT_NAMES[index % BOT_NAMES.length],
+    x, y, r, vx: 0, vy: 0,
+    color: teamColor,
+    team,
+    mass: 0,  // tracked same way as player mass
+    targetType: 'food', targetFood: null,
+    wanderAngle: Math.random() * Math.PI * 2,
+    wanderTimer: 0, chasing: false, chaseTimer: 0,
+  };
+}
+
+// Speed formula shared by both player and bots:
+// radius 10  → speed ~3.2  (tiny and zippy)
+// radius 50  → speed ~1.7  (medium)
+// radius 150 → speed ~0.8  (big and slow)
+// This makes escaping feel possible and growing feel like a trade-off.
+function speedForRadius(r) {
+  return Math.max(0.5, 3.5 - r * 0.018);
+}
+
+function drawVirus(ctx, x, y, r, spikes) {
+  const innerR = r * 0.78; // inner radius of the spiky star shape
+  const step   = Math.PI / spikes;
+
+  // Filled spiky body
+  ctx.beginPath();
+  for (let i = 0; i < spikes * 2; i++) {
+    const rad    = i % 2 === 0 ? r : innerR;
+    const angle  = i * step - Math.PI / 2;
+    const px     = x + Math.cos(angle) * rad;
+    const py     = y + Math.sin(angle) * rad;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+
+  // Dark green fill with lighter center
+  const grad = ctx.createRadialGradient(x, y, r * 0.1, x, y, r);
+  grad.addColorStop(0, '#55efc4');
+  grad.addColorStop(1, '#00b894');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Bright green outline
+  ctx.strokeStyle = '#00ff99';
+  ctx.lineWidth   = Math.max(1, r * 0.06);
+  ctx.stroke();
+
+  // Shine dot
+  ctx.beginPath();
+  ctx.arc(x - r * 0.25, y - r * 0.25, r * 0.18, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fill();
+}
+// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+//  SPLIT CONSTANTS
+const SPLIT_MIN_R     = 22;
+const MERGE_FRAMES    = 480;
+const SPLIT_LAUNCH    = 14;
+const MAX_PIECES      = 12;
+const MAX_BLOB_RADIUS = 400;
+const VIRUS_COUNT     = 30;   // number of viruses scattered across the map
+const VIRUS_R         = 40;   // virus radius — blob must be bigger than this to explode
+// ─────────────────────────────────────────────────────────────
+
+// Spawn a single virus at a random world position
+function spawnVirus() {
+  return {
+    x: 80 + Math.random() * (WORLD_SIZE - 160),
+    y: 80 + Math.random() * (WORLD_SIZE - 160),
+    r: VIRUS_R,
+    // Each virus has a random spike count for visual variety
+    spikes: 10 + Math.floor(Math.random() * 6),
+  };
+}
+
+function initGame(name) {
+  blobsEatenCount = 0;
+  ejectedMass = [];
+  particles   = [];
+  viruses     = Array.from({ length: VIRUS_COUNT }, spawnVirus);
+  // In team mode player is always team 0 (green team).
+  // In FFA team = -1 (no teams).
+  const playerTeam  = selectedMode === 'team' ? 0 : -1;
+  const playerColor = selectedMode === 'team' ? '#5dcc7a' : getPlayerColor();
+
+  playerPieces = [{
+    name, x: WORLD_SIZE/2, y: WORLD_SIZE/2,
+    r: 22, vx: 0, vy: 0,
+    color: playerColor, mass: 0,
+    team: playerTeam,
+    mergeTimer: 0,
+  }];
+  foodPellets = Array.from({ length: FOOD_COUNT }, spawnFood);
+  bots = Array.from({ length: BOT_COUNT }, (_, i) => spawnBot(i, 22));
+  cam.x = WORLD_SIZE/2; cam.y = WORLD_SIZE/2; cam.scale = 1;
+  inputDir = { x: 0, y: 0 };
+}
+
+// ─────────────────────────────────────────────────────────────
+//  BOT AI — called once per frame per bot
+//
+//  Three behaviours in priority order:
+//   1. HUNT PLAYER — only if bot is bigger AND player is within
+//      DETECT_RANGE. Once chasing, the bot gives up after
+//      CHASE_TIMEOUT frames if it hasn't caught the player.
+//   2. HUNT BOT — if a smaller bot is nearby, chase and eat it.
+//      This makes the arena feel like a real ecosystem where
+//      bots compete with each other, not just with the player.
+//   3. FORAGE — default mode; find the nearest food pellet.
+// ─────────────────────────────────────────────────────────────
+const DETECT_RANGE   = 320; // world units — how far a bot can "see" the player
+const CHASE_TIMEOUT  = 180; // frames (~3 sec at 60fps) before bot gives up
+
+function updateBot(bot, botIndex, dt = 1) {
+  const spd  = speedForRadius(bot.r);
+  const GRIP = 0.14;
+  let targetX, targetY;
+
+  const distToPlayer = Math.hypot(bot.x - player.x, bot.y - player.y);
+  const canEatPlayer = bot.r > player.r * 1.1; // compare against largest piece
+
+  // ── 1. HUNT PLAYER (with detection range + timeout) ──
+  if (canEatPlayer) {
+    if (!bot.chasing && distToPlayer < DETECT_RANGE) {
+      // Player just entered detection range — start chasing
+      bot.chasing = true;
+      bot.chaseTimer = 0;
+    }
+    if (bot.chasing) {
+      bot.chaseTimer++;
+      if (bot.chaseTimer > CHASE_TIMEOUT) {
+        // Gave up — player escaped long enough
+        bot.chasing = false;
+        bot.chaseTimer = 0;
+      } else {
+        targetX = player.x;
+        targetY = player.y;
+      }
+    }
+  } else {
+    // Can no longer eat player (player grew) — cancel any chase
+    bot.chasing = false;
+    bot.chaseTimer = 0;
+  }
+
+  // ── 2. HUNT ANOTHER BOT (if not chasing player) ──
+  if (targetX === undefined) {
+    let preyBot = null, preyDist = Infinity;
+    bots.forEach((other, idx) => {
+      if (idx === botIndex) return; // skip self
+      if (bot.r > other.r * 1.1) { // only chase if meaningfully bigger
+        const d = Math.hypot(bot.x - other.x, bot.y - other.y);
+        // Only hunt nearby bots (so they don't laser-beam across the map)
+        if (d < DETECT_RANGE * 1.5 && d < preyDist) {
+          preyDist = d; preyBot = other;
+        }
+      }
+    });
+    if (preyBot) {
+      targetX = preyBot.x;
+      targetY = preyBot.y;
+    }
+  }
+
+  // ── 3. FORAGE for food (default) ──
+  if (targetX === undefined) {
+    bot.wanderTimer++;
+    if (bot.targetFood === null || bot.wanderTimer > 30) {
+      bot.wanderTimer = 0;
+      let best = null, bestD = Infinity;
+      foodPellets.forEach((f, i) => {
+        const d = Math.hypot(f.x - bot.x, f.y - bot.y);
+        if (d < bestD) { bestD = d; best = i; }
+      });
+      bot.targetFood = best;
+    }
+    if (bot.targetFood !== null && foodPellets[bot.targetFood]) {
+      targetX = foodPellets[bot.targetFood].x;
+      targetY = foodPellets[bot.targetFood].y;
+    } else {
+      bot.wanderAngle += (Math.random() - 0.5) * 0.3;
+      targetX = bot.x + Math.cos(bot.wanderAngle) * 200;
+      targetY = bot.y + Math.sin(bot.wanderAngle) * 200;
+    }
+  }
+
+  // ── Steer toward target with velocity/grip system (same as player) ──
+  const dx = targetX - bot.x, dy = targetY - bot.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const desiredVx = (dx / dist) * spd;
+  const desiredVy = (dy / dist) * spd;
+  bot.vx += (desiredVx - bot.vx) * GRIP;
+  bot.vy += (desiredVy - bot.vy) * GRIP;
+  bot.x += bot.vx * dt;
+  bot.y += bot.vy * dt;
+
+  // Bounce off world boundaries
+  if (bot.x - bot.r < 0)                { bot.x = bot.r;               bot.vx *= -0.5; }
+  if (bot.x + bot.r > WORLD_SIZE)       { bot.x = WORLD_SIZE - bot.r;  bot.vx *= -0.5; }
+  if (bot.y - bot.r < 0)                { bot.y = bot.r;               bot.vy *= -0.5; }
+  if (bot.y + bot.r > WORLD_SIZE)       { bot.y = WORLD_SIZE - bot.r;  bot.vy *= -0.5; }
+
+  // ── Bot eats food pellets ──
+  if (bot.targetFood !== null) {
+    const f = foodPellets[bot.targetFood];
+    if (f && Math.hypot(f.x - bot.x, f.y - bot.y) < bot.r + f.r - 2) {
+      bot.r = Math.min(bot.r + 0.3, MAX_BLOB_RADIUS);
+      bot.mass = (bot.mass || 0) + 1;
+      foodPellets[bot.targetFood] = spawnFood(); // respawn pellet
+      bot.targetFood = null;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  UPDATE GAME — full physics + logic step per frame
+//  Now operates on playerPieces array so splitting works naturally.
+// ─────────────────────────────────────────────────────────────
+function updateGame(dt = 1) {
+  if (!playerPieces.length) return;
+  player = playerPieces.reduce((a, b) => a.r > b.r ? a : b);
+
+  // Build spatial grid once per frame — O(n) build, O(1) lookup
+  const foodGrid = buildFoodGrid();
+
+  playerPieces.forEach(piece => {
+    const spd = speedForRadius(piece.r);
+    piece.vx += (inputDir.x * spd - piece.vx) * 0.08;
+    piece.vy += (inputDir.y * spd - piece.vy) * 0.08;
+    piece.x  += piece.vx * dt;
+    piece.y  += piece.vy * dt;
+    piece.x   = Math.max(piece.r, Math.min(WORLD_SIZE - piece.r, piece.x));
+    piece.y   = Math.max(piece.r, Math.min(WORLD_SIZE - piece.r, piece.y));
+    piece.mergeTimer += dt;
+
+    // ── Piece eats food pellets — only check nearby cells ──
+    const nearby = nearbyFoodIndices(piece.x, piece.y, foodGrid);
+    for (const i of nearby) {
+      const f = foodPellets[i];
+      if (!f) continue;
+      if (Math.hypot(f.x - piece.x, f.y - piece.y) < piece.r + f.r - 2) {
+        spawnParticles(f.x, f.y, f.color, 4);
+        piece.r   += 0.35;
+        piece.mass += 1;
+        foodPellets[i] = spawnFood();
+        addXP(1);
+        playSFX('eat');
+      }
+    }
+
+    // ── Piece eats bots ──
+    for (let i = bots.length - 1; i >= 0; i--) {
+      const bot = bots[i];
+      // In team mode: allies (same team) cannot eat each other
+      if (selectedMode === 'team' && bot.team === piece.team) continue;
+      const d = Math.hypot(bot.x - piece.x, bot.y - piece.y);
+      if (d < piece.r - bot.r * 0.5 && piece.r > bot.r * 1.1) {
+        piece.r    += bot.r * 0.18;
+        piece.mass += Math.max(1, Math.floor(bot.r / 5));
+        blobsEatenCount++;
+        bots[i] = spawnBot(i, 22);
+        addXP(Math.max(5, Math.floor(bot.r / 2)));
+        playSFX('eatbot');
+      }
+    }
+  });
+
+  // ── Pieces repel each other so they don't all sit on top ──
+  // This makes split pieces spread out naturally, like agar.io.
+  for (let i = 0; i < playerPieces.length; i++) {
+    for (let j = i + 1; j < playerPieces.length; j++) {
+      const a = playerPieces[i], b = playerPieces[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const minDist = a.r + b.r;
+      if (dist < minDist) {
+        // Push the two pieces apart gently
+        const push = (minDist - dist) / dist * 0.3;
+        a.x -= dx * push; a.y -= dy * push;
+        b.x += dx * push; b.y += dy * push;
+      }
+    }
+  }
+
+  // ── Merge pieces back together after cooldown ──
+  // When mergeTimer is ready: pieces are pulled toward each other (magnetic).
+  // They fully absorb when centers are close enough.
+  if (playerPieces.length > 1) {
+    for (let i = 0; i < playerPieces.length; i++) {
+      for (let j = i + 1; j < playerPieces.length; j++) {
+        const a = playerPieces[i], b = playerPieces[j];
+        if (a.mergeTimer < MERGE_FRAMES || b.mergeTimer < MERGE_FRAMES) continue;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d  = Math.hypot(dx, dy) || 1;
+        // Pull the two pieces toward each other like a magnet
+        const pull = 0.04;
+        a.vx += (dx / d) * pull;  a.vy += (dy / d) * pull;
+        b.vx -= (dx / d) * pull;  b.vy -= (dy / d) * pull;
+        // Absorb when close enough
+        if (d < (a.r + b.r) * 0.55) {
+          a.r    = Math.sqrt(a.r * a.r + b.r * b.r);
+          a.mass = a.mass + b.mass;
+          a.mergeTimer = 0;
+          playerPieces.splice(j, 1);
+          break;
+        }
+      }
+    }
+  }
+
+  // ── Bots eat any player piece they're big enough to consume ──
+  for (const bot of bots) {
+    // In team mode allies don't eat the player
+    if (selectedMode === 'team' && bot.team === 0) continue;
+    for (let i = playerPieces.length - 1; i >= 0; i--) {
+      const piece = playerPieces[i];
+      const d = Math.hypot(bot.x - piece.x, bot.y - piece.y);
+      if (d < bot.r - piece.r * 0.5 && bot.r > piece.r * 1.1) {
+        playerPieces.splice(i, 1);
+        if (playerPieces.length === 0) { triggerDeath(bot.name); return; }
+      }
+    }
+  }
+
+  // ── Update ejected mass blobs ──
+  for (let i = ejectedMass.length - 1; i >= 0; i--) {
+    const e = ejectedMass[i];
+    e.vx *= 0.92; e.vy *= 0.92;
+    e.x += e.vx * dt; e.y += e.vy * dt;
+    e.x = Math.max(e.r, Math.min(WORLD_SIZE - e.r, e.x));
+    e.y = Math.max(e.r, Math.min(WORLD_SIZE - e.r, e.y));
+    if (e.ownTimer > 0) e.ownTimer -= dt;
+    e.life -= dt;
+
+    // On expiry — return mass to nearest player piece so it's never just lost
+    if (e.life <= 0) {
+      const nearest = playerPieces.reduce((a, b) =>
+        Math.hypot(a.x-e.x, a.y-e.y) < Math.hypot(b.x-e.x, b.y-e.y) ? a : b, playerPieces[0]);
+      if (nearest) { nearest.mass += e.massValue || 0; }
+      ejectedMass.splice(i, 1);
+      continue;
+    }
+
+    // Player absorbs own ejected blob (after ownTimer expires)
+    if (e.ownTimer <= 0) {
+      let absorbed = false;
+      for (const piece of playerPieces) {
+        if (Math.hypot(piece.x - e.x, piece.y - e.y) < piece.r + e.r - 2) {
+          piece.mass += e.massValue || 0;
+          piece.r = Math.min(piece.r + e.r * 0.05, MAX_BLOB_RADIUS);
+          ejectedMass.splice(i, 1);
+          absorbed = true;
+          break;
+        }
+      }
+      if (absorbed) continue;
+    }
+
+    // Bots can eat ejected mass
+    let botAte = false;
+    for (let j = 0; j < bots.length; j++) {
+      const bot = bots[j];
+      if (Math.hypot(bot.x - e.x, bot.y - e.y) < bot.r + e.r - 2) {
+        bot.r = Math.min(bot.r + e.r * 0.1, MAX_BLOB_RADIUS);
+        ejectedMass.splice(i, 1);
+        botAte = true;
+        break;
+      }
+    }
+    if (botAte) continue;
+  }
+
+  // ── Update particles ──
+  updateParticles(dt);
+
+  // ── Virus collisions ──
+  // Rule: if a blob is BIGGER than the virus (r > VIRUS_R * 1.1) and touches it,
+  // it explodes into many small pieces. Smaller blobs pass through safely.
+  // After being triggered, the virus respawns elsewhere.
+  for (let vi = viruses.length - 1; vi >= 0; vi--) {
+    const v = viruses[vi];
+
+    // Check player pieces against virus
+    for (let pi = playerPieces.length - 1; pi >= 0; pi--) {
+      const piece = playerPieces[pi];
+      if (piece.r <= VIRUS_R * 1.1) continue; // too small — safe to pass through
+      const d = Math.hypot(piece.x - v.x, piece.y - v.y);
+      if (d < piece.r + v.r - 8) {
+        // EXPLODE — split the piece into many small fragments
+        const fragments = Math.min(Math.floor(piece.r / 10), MAX_PIECES - playerPieces.length + 1);
+        if (fragments > 1) {
+          const fragR    = piece.r / Math.sqrt(fragments);
+          const fragMass = Math.max(1, Math.floor(piece.mass / fragments));
+          piece.r    = fragR;
+          piece.mass = fragMass;
+          for (let f = 1; f < fragments; f++) {
+            const angle = (f / fragments) * Math.PI * 2;
+            playerPieces.push({
+              name: piece.name, color: piece.color,
+              x: piece.x + Math.cos(angle) * fragR * 1.5,
+              y: piece.y + Math.sin(angle) * fragR * 1.5,
+              r: fragR, mass: fragMass,
+              vx: Math.cos(angle) * SPLIT_LAUNCH * 0.8,
+              vy: Math.sin(angle) * SPLIT_LAUNCH * 0.8,
+              team: piece.team, mergeTimer: 0,
+            });
+            if (playerPieces.length >= MAX_PIECES) break;
+          }
+          spawnParticles(v.x, v.y, '#00ff99', 8);
+          playSFX('split');
+        }
+        viruses[vi] = spawnVirus(); // respawn virus elsewhere
+        break;
+      }
+    }
+
+    // Check bots against virus
+    for (let bi = 0; bi < bots.length; bi++) {
+      const bot = bots[bi];
+      if (bot.r <= VIRUS_R * 1.1) continue;
+      const d = Math.hypot(bot.x - v.x, bot.y - v.y);
+      if (d < bot.r + v.r - 8) {
+        // Bot hits virus — shrink it back to small size
+        bot.r    = VIRUS_R * 0.8;
+        bot.mass = 0;
+        viruses[vi] = spawnVirus();
+        break;
+      }
+    }
+  }
+
+  // ── Update bots ──
+  bots.forEach((bot, i) => updateBot(bot, i, dt));
+
+  // ── Bot vs bot eating — allies never eat each other ──
+  for (let i = 0; i < bots.length; i++) {
+    for (let j = i + 1; j < bots.length; j++) {
+      const a = bots[i], b = bots[j];
+      if (selectedMode === 'team' && a.team === b.team) continue;
+      if (a.r > b.r * 1.1 && Math.hypot(a.x-b.x, a.y-b.y) < a.r - b.r*0.5) {
+        a.r += b.r * 0.1;
+        a.mass = (a.mass || 0) + Math.max(1, Math.floor((b.mass || 0) / 2));
+        bots[j] = spawnBot(j, 22);
+      } else if (b.r > a.r * 1.1 && Math.hypot(a.x-b.x, a.y-b.y) < b.r - a.r*0.5) {
+        b.r += a.r * 0.1;
+        b.mass = (b.mass || 0) + Math.max(1, Math.floor((a.mass || 0) / 2));
+        bots[i] = spawnBot(i, 22);
+      }
+    }
+  }
+
+  // ── Camera: follow average center of all pieces, zoom to fit ALL of them ──
+  const avgX = playerPieces.reduce((s, p) => s + p.x, 0) / playerPieces.length;
+  const avgY = playerPieces.reduce((s, p) => s + p.y, 0) / playerPieces.length;
+  cam.x += (avgX - cam.x) * 0.07;
+  cam.y += (avgY - cam.y) * 0.07;
+
+  // Measure the bounding box that contains ALL pieces (including their radius edges).
+  // This means even the furthest-flung split piece is always fully visible.
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  playerPieces.forEach(p => {
+    minX = Math.min(minX, p.x - p.r);
+    maxX = Math.max(maxX, p.x + p.r);
+    minY = Math.min(minY, p.y - p.r);
+    maxY = Math.max(maxY, p.y + p.r);
+  });
+  const spreadW = maxX - minX;
+  const spreadH = maxY - minY;
+
+  // Scale needed to fit the full spread on screen, with 35% padding around it
+  // so pieces never sit right at the edge of the view.
+  const PADDING  = 1.35;
+  const scaleToFitW = gW / (spreadW * PADDING);
+  const scaleToFitH = gH / (spreadH * PADDING);
+  const scaleToFit  = Math.min(scaleToFitW, scaleToFitH);
+
+  // Also compute a size-based zoom (so single blob gets reasonable view too).
+  // Bumped up 30% from before so ALL sizes feel more zoomed out.
+  const maxR       = Math.max(...playerPieces.map(p => p.r));
+  const scaleBySize = 17 / maxR;   // was 22 — lower number = more zoomed out
+
+  // Use whichever zoom is MORE zoomed out — always keeps all pieces visible.
+  // BUT clamp minimum to size-based floor so many small spread pieces
+  // never zoom out to show the whole map.
+  const minScale = Math.max(0.08, (17 / maxR) * 0.35); // never go below 35% of size-based zoom
+  const targetScale = Math.max(minScale, Math.min(0.95, Math.min(scaleToFit, scaleBySize)));
+  cam.scale += (targetScale - cam.scale) * 0.045;
+
+  // ── HUD updates ──
+  const totalMass = playerPieces.reduce((s, p) => s + p.mass, 0);
+  const xpCur     = xp - xpForLevel(level - 1);
+  const xpNeed    = xpForLevel(level) - xpForLevel(level - 1);
+  if (selectedMode === 'team') {
+    // Show team mass vs enemy team mass
+    const allyMass  = bots.filter(b => b.team === 0).reduce((s,b) => s + Math.floor(b.r*b.r/40), totalMass);
+    const enemyMass = bots.filter(b => b.team === 1).reduce((s,b) => s + Math.floor(b.r*b.r/40), 0);
+    _massDisplay.textContent = `🟢 ${allyMass} vs 🔴 ${enemyMass}`;
+  } else {
+    _massDisplay.textContent = `MASS: ${totalMass}`;
+  }
+  _xpFill.style.width      = `${Math.min(100, (xpCur / xpNeed) * 100)}%`;
+  _levelNum.textContent    = `LV ${level}`;
+  _coinNum.textContent     = `🪙 ${coins}`;
+
+  // ── Leaderboard: only rebuild DOM when top-10 order/values change ──
+  const playerEntry = { name: playerPieces[0]?.name || '?', mass: totalMass, isMe: true };
+  const botEntries = bots.map(b => ({
+    name: b.name,
+    mass: b.mass || 0,  // real tracked mass, same unit as player
+    isMe: false,
+  }));
+  const all = [playerEntry, ...botEntries]
+    .sort((a, b) => b.mass - a.mass)
+    .slice(0, 10);
+
+  // Build a simple fingerprint string — only touch the DOM if it changed
+  const lbKey = all.map(e => e.name + e.mass + e.isMe).join('|');
+  if (lbKey !== updateGame._lbKey) {
+    updateGame._lbKey = lbKey;
+    _lbRows.innerHTML = all.map((e, i) =>
+      `<div class="lb-row${e.isMe ? ' me' : ''}">
+        <span class="lb-rank">${i + 1}</span>
+        <span class="lb-name">${e.name}</span>
+        <span class="lb-mass">${e.mass}</span>
+      </div>`
+    ).join('');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER
+// ─────────────────────────────────────────────────────────────
+function renderGame() {
+  gCtx.clearRect(0, 0, gW, gH);
+  gCtx.fillStyle = '#141414';
+  gCtx.fillRect(0, 0, gW, gH);
+
+  // Scrolling white grid
+  const gridSize = 36 * cam.scale;
+  const offX = ((-cam.x*cam.scale) % gridSize + gW/2 + gridSize) % gridSize;
+  const offY = ((-cam.y*cam.scale) % gridSize + gH/2 + gridSize) % gridSize;
+  gCtx.strokeStyle = 'rgba(255,255,255,0.065)'; gCtx.lineWidth = 1;
+  gCtx.beginPath();
+  for (let x=offX-gridSize; x<gW+gridSize; x+=gridSize) { gCtx.moveTo(x,0); gCtx.lineTo(x,gH); }
+  for (let y=offY-gridSize; y<gH+gridSize; y+=gridSize) { gCtx.moveTo(0,y); gCtx.lineTo(gW,y); }
+  gCtx.stroke();
+
+  // World border
+  const tl = worldToScreen(0,0), br = worldToScreen(WORLD_SIZE, WORLD_SIZE);
+  gCtx.strokeStyle = 'rgba(255,100,100,0.35)'; gCtx.lineWidth = 3;
+  gCtx.strokeRect(tl.x, tl.y, br.x-tl.x, br.y-tl.y);
+
+  // Food pellets
+  foodPellets.forEach(f => {
+    const s = worldToScreen(f.x, f.y);
+    const sr = f.r * cam.scale;
+    if (sr < 0.5) return;
+    gCtx.beginPath(); gCtx.arc(s.x, s.y, sr, 0, Math.PI*2);
+    gCtx.fillStyle = f.color; gCtx.fill();
+  });
+
+  // ── Draw viruses (behind blobs, above food) ──
+  viruses.forEach(v => {
+    const s  = worldToScreen(v.x, v.y);
+    const sr = v.r * cam.scale;
+    if (sr < 1) return;
+    drawVirus(gCtx, s.x, s.y, sr, v.spikes);
+  });
+
+  // ── Draw bots ──
+  // Sort by radius so smaller ones draw first (behind bigger ones),
+  // which is how agar.io handles overlap — bigger always on top.
+  const allBlobs = [...bots].sort((a,b) => a.r - b.r);
+  allBlobs.forEach(bot => {
+    const s = worldToScreen(bot.x, bot.y);
+    const sr = bot.r * cam.scale;
+    if (sr < 1) return;
+    drawBlob(gCtx, s.x, s.y, sr, bot.color, bot.name);
+  });
+
+  // ── Draw ejected mass blobs ──
+  ejectedMass.forEach(e => {
+    const s = worldToScreen(e.x, e.y);
+    const sr = e.r * cam.scale;
+    if (sr < 0.5) return;
+    gCtx.beginPath(); gCtx.arc(s.x, s.y, sr, 0, Math.PI*2);
+    gCtx.fillStyle = e.color; gCtx.fill();
+  });
+
+  // ── Draw particles ──
+  drawParticles();
+
+  // ── Draw player pieces (all of them, sorted small→big) ──
+  if (playerPieces.length) {
+    // Resolve badge emoji from equipped badge item
+    const badgeItem = SHOP_ITEMS.badges.find(b => b.id === shopEquipped.badges);
+    const playerBadge = badgeItem?.badge || '';
+    [...playerPieces].sort((a,b) => a.r - b.r).forEach(piece => {
+      const ps = worldToScreen(piece.x, piece.y);
+      drawBlob(gCtx, ps.x, ps.y, piece.r * cam.scale, piece.color, piece.name, null, playerBadge);
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  DEATH TRIGGER
+//  Stops the game loop and shows the death screen with stats.
+// ─────────────────────────────────────────────────────────────
+function triggerDeath(killerName) {
+  gameRunning = false;
+  if (gameRAF) cancelAnimationFrame(gameRAF);
+
+  // Populate death screen stats
+  document.getElementById('killerName').textContent  = killerName;
+  const finalMass = playerPieces.reduce((s,p) => s + p.mass, 0);
+  document.getElementById('finalMass').textContent   = finalMass;
+  document.getElementById('blobsEaten').textContent  = blobsEatenCount;
+  document.getElementById('deathTip').textContent    = getRandomTip();
+  recordBestMass(finalMass);
+  playSFX('death');
+
+  // Hide HUD, show death overlay
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('deathScreen').classList.add('show');
+}
+
+// ─────────────────────────────────────────────────────────────
+//  GAME LOOP
+// ─────────────────────────────────────────────────────────────
+// Force-merge ALL pieces instantly into one regardless of timer
+function doMerge() {
+  if (playerPieces.length <= 1) return;
+  // Compute true center of mass (weighted by area = r²)
+  let totalArea = 0, cx = 0, cy = 0, cvx = 0, cvy = 0, totalMass = 0;
+  playerPieces.forEach(p => {
+    const area = p.r * p.r;
+    totalArea += area;
+    cx  += p.x   * area;
+    cy  += p.y   * area;
+    cvx += p.vx  * area;
+    cvy += p.vy  * area;
+    totalMass += p.mass;
+  });
+  const base = playerPieces[0];
+  // Combined radius: sqrt of sum of all areas
+  base.r    = Math.sqrt(totalArea);
+  base.mass = Math.max(1, totalMass);
+  base.x    = cx  / totalArea;
+  base.y    = cy  / totalArea;
+  base.vx   = cvx / totalArea;
+  base.vy   = cvy / totalArea;
+  base.mergeTimer = 0;
+  playerPieces.length = 1;
+}
+
+let _lastTime = 0;
+
+function gameLoop(timestamp) {
+  if (!gameRunning) return;
+  // Delta-time: clamp to max 50ms (= 20fps floor) so physics don't explode
+  // if the tab was backgrounded. Normalise to 60fps baseline.
+  const dt = Math.min((timestamp - _lastTime) || 16.67, 50) / 16.67;
+  _lastTime = timestamp;
+  tickShopAnimations();
+  updateGame(dt);
+  renderGame();
+  if (_splitBtnEl.style.display !== 'none') {
+    const canSplit = playerPieces.some(p => p.r >= SPLIT_MIN_R);
+    _splitBtnEl.classList.toggle('cooldown', !canSplit);
+  }
+  if (_mergeBtnEl.style.display !== 'none') {
+    _mergeBtnEl.classList.toggle('active', playerPieces.length > 1);
+  }
+  gameRAF = requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INPUT — PC mouse
+// ═══════════════════════════════════════════════════════════════
+gameCanvas.addEventListener('mousemove', e => {
+  const dx = e.clientX - gW/2, dy = e.clientY - gH/2;
+  const mag = Math.hypot(dx, dy) || 1;
+  inputDir.x = dx/mag; inputDir.y = dy/mag;
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  INPUT — Mobile joystick (fixed, bottom-right)
+// ═══════════════════════════════════════════════════════════════
+const joystickBase = document.getElementById('joystickBase');
+const joystickKnob = document.getElementById('joystickKnob');
+const KNOB_MAX = 32;
+let joyCenterX = 0, joyCenterY = 0;
+let joystickActive = false;
+let joyTouchId = null; // track WHICH finger owns the joystick
+
+function updateJoyCenter() {
+  joyCenterX = gW - 48 - 55;
+  joyCenterY = gH - 48 - 55;
+}
+
+gameCanvas.addEventListener('touchstart', e => {
+  e.preventDefault(); updateJoyCenter();
+  for (const t of e.changedTouches) {
+    // Only claim joystick for a right-side touch if nothing owns it yet
+    if (t.clientX > gW * 0.5 && !joystickActive) {
+      joystickActive = true;
+      joyTouchId = t.identifier; // remember which finger this is
+      handleJoystick(t.clientX, t.clientY);
+    }
+  }
+}, { passive: false });
+
+gameCanvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    // Only respond to the exact finger that started the joystick
+    if (t.identifier === joyTouchId && joystickActive) {
+      handleJoystick(t.clientX, t.clientY);
+    }
+  }
+}, { passive: false });
+
+gameCanvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    // Only release when the correct finger lifts
+    if (t.identifier === joyTouchId) {
+      joystickActive = false;
+      joyTouchId = null;
+      inputDir.x = 0; inputDir.y = 0;
+      joystickKnob.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+}, { passive: false });
+
+function handleJoystick(touchX, touchY) {
+  const dx = touchX - joyCenterX, dy = touchY - joyCenterY;
+  const dist = Math.hypot(dx, dy) || 1;
+  // Deadzone: ignore tiny movements under 8px — prevents micro-tremor drift
+  if (dist < 8) { inputDir.x = 0; inputDir.y = 0; joystickKnob.style.transform = 'translate(-50%, -50%)'; return; }
+  inputDir.x = dx/dist; inputDir.y = dy/dist;
+  const travel = Math.min(dist, KNOB_MAX);
+  joystickKnob.style.transform =
+    `translate(calc(-50% + ${(dx/dist)*travel}px), calc(-50% + ${(dy/dist)*travel}px))`;
+}
+
+// Cache frequently-accessed HUD elements once — querying DOM every frame is slow
+const _massDisplay = document.getElementById('massDisplay');
+const _xpFill      = document.getElementById('xpFill');
+const _levelNum    = document.getElementById('levelNum');
+const _coinNum     = document.getElementById('coinNum');
+const _lbRows      = document.getElementById('lbRows');
+const _splitBtnEl  = document.getElementById('splitBtn');
+const _mergeBtnEl  = document.getElementById('mergeBtn');
+
+const _ejectBtnEl = document.getElementById('ejectBtn');
+
+function _onSplit(e) { e.preventDefault(); if (gameRunning) doSplit(); }
+function _onMerge(e) { e.preventDefault(); if (gameRunning) doMerge(); }
+function _onEject(e) { e.preventDefault(); if (gameRunning) doEject(); }
+
+_splitBtnEl.addEventListener('touchstart', _onSplit, { passive: false });
+_splitBtnEl.addEventListener('click', _onSplit);
+_mergeBtnEl.addEventListener('touchstart', _onMerge, { passive: false });
+_mergeBtnEl.addEventListener('click', _onMerge);
+_ejectBtnEl.addEventListener('touchstart', _onEject, { passive: false });
+_ejectBtnEl.addEventListener('click', _onEject);
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && gameRunning) { e.preventDefault(); doSplit(); }
+  if (e.code === 'KeyM' && gameRunning)  { e.preventDefault(); doMerge(); }
+  if (e.code === 'KeyW' && gameRunning)  { e.preventDefault(); doEject(); }
+});
+
+// Shoot a small mass blob in the movement direction.
+// Costs 10 mass minimum. Useful for baiting enemies or feeding allies in team mode.
+function doEject() {
+  if (!playerPieces.length) return;
+  const piece = playerPieces.reduce((a, b) => a.r > b.r ? a : b);
+  if (piece.mass < 10) { showToast('❌ Not enough mass to eject!'); return; }
+
+  const dirX = inputDir.x || 1;
+  const dirY = inputDir.y || 0;
+  const EJECT_COST = 10; // exact mass cost
+  const ejectR = Math.max(16, Math.min(piece.r * 0.35, 24)); // chunky — visibly bigger than food
+
+  piece.r    = Math.max(SPLIT_MIN_R, piece.r * 0.94);
+  piece.mass = Math.max(1, piece.mass - EJECT_COST);
+
+  ejectedMass.push({
+    x:         piece.x + dirX * (piece.r + ejectR + 2),
+    y:         piece.y + dirY * (piece.r + ejectR + 2),
+    r:         ejectR,
+    vx:        dirX * 14,
+    vy:        dirY * 14,
+    color:     piece.color,
+    massValue: EJECT_COST, // stored so it can be returned
+    life:      240,        // ~4 seconds before expiry
+    ownTimer:  60,         // player can't absorb own blob for 1 second
+  });
+  playSFX('eat');
+}
+
+function doSplit() {
+  if (!playerPieces.length) return;
+
+  // Only split pieces that are big enough AND won't push us over the cap
+  const slotsLeft = MAX_PIECES - playerPieces.length;
+  if (slotsLeft <= 0) return;
+  const toSplit = playerPieces.filter(p => p.r >= SPLIT_MIN_R).slice(0, slotsLeft);
+  if (!toSplit.length) return;
+
+  const dirX = inputDir.x || 1;
+  const dirY = inputDir.y || 0;
+  const newPieces = [];
+
+  toSplit.forEach(piece => {
+    const newR        = piece.r / Math.SQRT2;
+    const originalMass = piece.mass;
+    piece.r    = newR;
+    piece.mass = Math.max(1, Math.floor(originalMass / 2)); // original piece keeps half
+
+    newPieces.push({
+      name:  piece.name,
+      x:     piece.x + dirX * (newR * 1.2),
+      y:     piece.y + dirY * (newR * 1.2),
+      r:     newR,
+      vx:    piece.vx + dirX * SPLIT_LAUNCH,
+      vy:    piece.vy + dirY * SPLIT_LAUNCH,
+      color: piece.color,
+      mass:  Math.max(1, originalMass - piece.mass), // new piece gets the other half
+      mergeTimer: 0,
+    });
+  });
+
+  playerPieces.push(...newPieces);
+  playSFX('split');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SCREEN TRANSITIONS
+// ═══════════════════════════════════════════════════════════════
+function startGame() {
+  const name = nameInput.value.trim();
+  if (!name) { nameInput.classList.add('error'); nameInput.focus(); showToast('⚠️ Enter your name to play!'); return; }
+  localStorage.setItem('bulb_player_name', name);
+
+  // Resume audio context — browsers block audio until a user gesture
+  if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+
+  // Hide all other screens
+  document.getElementById('menuScreen').style.display  = 'none';
+  document.getElementById('deathScreen').classList.remove('show');
+  document.getElementById('gameScreen').style.display  = 'block';
+  document.getElementById('hud').style.display         = 'block';
+
+  const isTouch = 'ontouchstart' in window;
+  joystickBase.style.display = isTouch ? 'block' : 'none';
+  _splitBtnEl.style.display  = isTouch ? 'flex'  : 'none';
+  _mergeBtnEl.style.display  = isTouch ? 'flex'  : 'none';
+  _ejectBtnEl.style.display  = isTouch ? 'flex'  : 'none';
+
+  menuAnimating = false;
+  initGame(name);
+  recordGameStart();
+  updateJoyCenter();
+  gameRunning = true;
+  document.getElementById('leaderboard').style.display = showLB ? 'block' : 'none';
+  document.getElementById('xpBar').style.display = showXPBar ? 'block' : 'none';
+  gameLoop();
+}
+
+function goToMenu() {
+  gameRunning = false;
+  if (gameRAF) cancelAnimationFrame(gameRAF);
+  document.getElementById('leaderboard').style.display = 'none';
+  document.getElementById('gameScreen').style.display  = 'none';
+  document.getElementById('hud').style.display         = 'none';
+  document.getElementById('deathScreen').classList.remove('show');
+  document.getElementById('menuScreen').style.display  = 'flex';
+  menuAnimating = true;
+  animateMenu();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SHOP — Stage 6
+// ═══════════════════════════════════════════════════════════════
+
+// Shop catalogue — three tabs: solid colors, animated, badges
+const SHOP_ITEMS = {
+  colors: [
+    // Free starter
+    { id: 'col_green',    name: 'Slime',      price: 0,   color: '#5dcc7a' },
+    // Standard colors — 100 coins each
+    { id: 'col_blue',     name: 'Ocean',       price: 100, color: '#5bc8fa' },
+    { id: 'col_pink',     name: 'Blossom',     price: 100, color: '#ff6b9d' },
+    { id: 'col_yellow',   name: 'Sunny',       price: 100, color: '#ffd166' },
+    { id: 'col_purple',   name: 'Nebula',      price: 100, color: '#a29bfe' },
+    { id: 'col_orange',   name: 'Ember',       price: 100, color: '#ff9f43' },
+    { id: 'col_teal',     name: 'Aqua',        price: 100, color: '#00cec9' },
+    { id: 'col_red',      name: 'Lava',        price: 100, color: '#e17055' },
+    { id: 'col_white',    name: 'Ghost',       price: 100, color: '#dfe6e9' },
+    { id: 'col_black',    name: 'Shadow',      price: 100, color: '#2d3436' },
+    { id: 'col_lime',     name: 'Acid',        price: 100, color: '#badc58' },
+    { id: 'col_cyan',     name: 'Neon',        price: 100, color: '#00ffff' },
+    { id: 'col_magenta',  name: 'Magenta',     price: 100, color: '#ff00ff' },
+    { id: 'col_coral',    name: 'Coral',       price: 100, color: '#ff7675' },
+    { id: 'col_mint',     name: 'Mint',        price: 100, color: '#55efc4' },
+    { id: 'col_lavender', name: 'Lavender',    price: 100, color: '#d6a2e8' },
+    { id: 'col_brown',    name: 'Mud',         price: 100, color: '#a0785a' },
+    { id: 'col_navy',     name: 'Deep Sea',    price: 100, color: '#2c3e7a' },
+    { id: 'col_crimson',  name: 'Crimson',     price: 100, color: '#c0392b' },
+    { id: 'col_olive',    name: 'Olive',       price: 100, color: '#6d7a2c' },
+    // Design colors — metallic/textured feel, 200 coins
+    { id: 'col_gold_m',   name: '✦ Gold',      price: 200, color: '#f9ca24', metallic: true },
+    { id: 'col_silver',   name: '✦ Silver',    price: 200, color: '#b2bec3', metallic: true },
+    { id: 'col_bronze',   name: '✦ Bronze',    price: 200, color: '#cd7f32', metallic: true },
+    { id: 'col_chrome',   name: '✦ Chrome',    price: 200, color: '#a8c0ce', metallic: true },
+    { id: 'col_rose_g',   name: '✦ Rose Gold', price: 200, color: '#e8b4b8', metallic: true },
+    { id: 'col_galaxy',   name: '✦ Galaxy',    price: 200, color: '#6c3483', metallic: true },
+    { id: 'col_toxic',    name: '✦ Toxic',     price: 200, color: '#39ff14', metallic: true },
+    { id: 'col_plasma',   name: '✦ Plasma',    price: 200, color: '#e040fb', metallic: true },
+  ],
+  animated: [
+    { id: 'ani_rainbow',  name: 'Rainbow',     price: 300, anim: 'rainbow',  emoji: '🌈' },
+    { id: 'ani_fire',     name: 'Fire',        price: 400, anim: 'fire',     emoji: '🔥' },
+    { id: 'ani_ice',      name: 'Ice',         price: 400, anim: 'ice',      emoji: '❄️' },
+    { id: 'ani_gold',     name: 'Gold Shine',  price: 500, anim: 'gold',     emoji: '✨' },
+    { id: 'ani_ocean',    name: 'Ocean Wave',  price: 450, anim: 'ocean',    emoji: '🌊' },
+    { id: 'ani_blood',    name: 'Blood',       price: 450, anim: 'blood',    emoji: '🩸' },
+    { id: 'ani_toxic',    name: 'Toxic',       price: 500, anim: 'toxic',    emoji: '☢️' },
+    { id: 'ani_electric', name: 'Electric',    price: 550, anim: 'electric', emoji: '⚡' },
+    { id: 'ani_sunset',   name: 'Sunset',      price: 400, anim: 'sunset',   emoji: '🌅' },
+    { id: 'ani_void',     name: 'Void',        price: 600, anim: 'void',     emoji: '🌑' },
+  ],
+  badges: [
+    { id: 'bdg_none',     name: 'None',        price: 0,   badge: ''    },
+    { id: 'bdg_star',     name: 'Star',        price: 100, badge: '⭐'  },
+    { id: 'bdg_crown',    name: 'Crown',       price: 200, badge: '👑'  },
+    { id: 'bdg_skull',    name: 'Skull',       price: 150, badge: '💀'  },
+    { id: 'bdg_fire',     name: 'Flame',       price: 180, badge: '🔥'  },
+    { id: 'bdg_zap',      name: 'Zap',         price: 220, badge: '⚡'  },
+    { id: 'bdg_alien',    name: 'Alien',       price: 150, badge: '👽'  },
+    { id: 'bdg_devil',    name: 'Devil',       price: 200, badge: '😈'  },
+    { id: 'bdg_robot',    name: 'Robot',       price: 180, badge: '🤖'  },
+    { id: 'bdg_ghost',    name: 'Ghost',       price: 150, badge: '👻'  },
+    { id: 'bdg_dragon',   name: 'Dragon',      price: 250, badge: '🐉'  },
+    { id: 'bdg_sword',    name: 'Sword',       price: 200, badge: '⚔️'  },
+    { id: 'bdg_gem',      name: 'Gem',         price: 220, badge: '💎'  },
+    { id: 'bdg_toxic',    name: 'Toxic',       price: 200, badge: '☢️'  },
+    { id: 'bdg_100',      name: '100',         price: 120, badge: '💯'  },
+    { id: 'bdg_target',   name: 'Target',      price: 160, badge: '🎯'  },
+  ],
+};
+
+// Safe localStorage read — never crashes on corrupt JSON
+function lsGet(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e) { console.warn('localStorage corrupt for', key); return fallback; }
+}
+
+// Persisted shop state
+let shopOwned    = lsGet('bulb_owned',    ['col_green','bdg_none']);
+let shopEquipped = lsGet('bulb_equipped', {colors:'col_green', animated:null, badges:'bdg_none'});
+let currentTab   = 'colors';
+
+// Animated skin frame counter for pulsing effects
+let animFrame = 0;
+
+function saveShop() {
+  localStorage.setItem('bulb_owned',    JSON.stringify(shopOwned));
+  localStorage.setItem('bulb_equipped', JSON.stringify(shopEquipped));
+}
+
+// Returns the CSS color string for the currently equipped skin
+function getPlayerColor() {
+  if (shopEquipped.animated) {
+    const item = SHOP_ITEMS.animated.find(i => i.id === shopEquipped.animated);
+    if (item) {
+      if (item.anim === 'rainbow')  return _rainbowColor();
+      if (item.anim === 'fire')     return _fireColor();
+      if (item.anim === 'ice')      return _iceColor();
+      if (item.anim === 'gold')     return `hsl(${45+Math.sin(animFrame*0.05)*10},90%,${55+Math.sin(animFrame*0.07)*8}%)`;
+      if (item.anim === 'ocean')    return _oceanColor();
+      if (item.anim === 'blood')    return _bloodColor();
+      if (item.anim === 'toxic')    return _toxicColor();
+      if (item.anim === 'electric') return _electricColor();
+      if (item.anim === 'sunset')   return _sunsetColor();
+      if (item.anim === 'void')     return _voidColor();
+    }
+  }
+  if (shopEquipped.custom) return shopEquipped.custom;
+  const col = SHOP_ITEMS.colors.find(i => i.id === shopEquipped.colors);
+  return col?.color || '#5dcc7a';
+}
+
+function _rainbowColor()   { return `hsl(${(animFrame*2)%360},85%,60%)`; }
+function _fireColor()      { const t=(Math.sin(animFrame*0.08)+1)/2; return `rgb(255,${Math.floor(t*120)},0)`; }
+function _iceColor()       { const t=(Math.sin(animFrame*0.06)+1)/2; return `rgb(100,200,${Math.floor(200+t*55)})`; }
+function _oceanColor()     { const t=(Math.sin(animFrame*0.05)+1)/2; return `rgb(${Math.floor(20+t*30)},${Math.floor(120+t*80)},${Math.floor(180+t*60)})`; }
+function _bloodColor()     { const t=(Math.sin(animFrame*0.07)+1)/2; return `rgb(${Math.floor(160+t*60)},${Math.floor(t*20)},${Math.floor(t*20)})`; }
+function _toxicColor()     { const t=(Math.sin(animFrame*0.09)+1)/2; return `rgb(${Math.floor(t*60)},${Math.floor(180+t*75)},0)`; }
+function _electricColor()  { return (Math.floor(animFrame/4)%2===0) ? '#e0f7fa' : '#00e5ff'; }
+function _sunsetColor()    { const t=(animFrame%180)/180; return `hsl(${Math.floor(10+t*40)},90%,${Math.floor(50+t*15)}%)`; }
+function _voidColor()      { const t=(Math.sin(animFrame*0.04)+1)/2; return `rgb(${Math.floor(t*40)},0,${Math.floor(t*80)})`; }
+
+function buyCustomPicker() {
+  if (shopOwned.includes('custom_picker')) return;
+  if (coins < 500) { showToast('❌ Need 500 🪙 to unlock Custom Color!'); return; }
+  coins -= 500;
+  localStorage.setItem('bulb_coins', coins);
+  shopOwned.push('custom_picker');
+  saveShop();
+  showToast('🎨 Custom Color unlocked!');
+  renderShopTab('custom');
+}
+
+function previewCustom(val) {
+  const p = document.getElementById('customPreview');
+  if (p) p.style.background = val;
+}
+
+function applyCustomColor(val) {
+  shopEquipped.custom   = val;
+  shopEquipped.animated = null; // turn off animated when using custom
+  shopEquipped.colors   = null;
+  saveShop();
+  playerPieces.forEach(p => p.color = val);
+  showToast('✅ Custom color equipped!');
+  renderShopTab('custom');
+}
+
+// Open/close shop
+function openShop() {
+  document.getElementById('shopScreen').style.display = 'flex';
+  document.getElementById('shopCoinDisplay').textContent = coins;
+  renderShopTab(currentTab);
+}
+function closeShop() {
+  document.getElementById('shopScreen').style.display = 'none';
+}
+
+// Switch between tabs
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.shop-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', ['colors','animated','badges','custom'][i] === tab);
+  });
+  renderShopTab(tab);
+}
+
+function renderShopTab(tab) {
+  const grid   = document.getElementById('shopGrid');
+  const coinEl = document.getElementById('shopCoinDisplay');
+  coinEl.textContent = coins;
+
+  // Custom color picker tab
+  if (tab === 'custom') {
+    const owned   = shopOwned.includes('custom_picker');
+    const current = shopEquipped.custom || '#5dcc7a';
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;padding:8px 4px">
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.5);margin-bottom:14px;line-height:1.5">
+          Pick any color you want for your blob.<br>
+          <span style="color:#ffd166">Costs 500 🪙 to unlock once.</span>
+        </div>
+        ${owned ? `
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+            <div id="customPreview" style="width:56px;height:56px;border-radius:50%;background:${current};border:2px solid rgba(255,255,255,0.2);flex-shrink:0"></div>
+            <div>
+              <div style="color:#fff;font-weight:800;font-size:0.85rem">Your Color</div>
+              <div style="color:rgba(255,255,255,0.4);font-size:0.72rem;margin-top:2px">${current}</div>
+            </div>
+          </div>
+          <input type="color" id="customColorInput" value="${current}"
+            style="width:100%;height:48px;border:none;border-radius:12px;cursor:pointer;background:none"
+            oninput="previewCustom(this.value)" onchange="applyCustomColor(this.value)">
+          <button onclick="applyCustomColor(document.getElementById('customColorInput').value)"
+            style="margin-top:12px;width:100%;padding:14px;border-radius:14px;border:none;
+            background:#5dcc7a;color:#0a1f10;font-family:'Orbitron',sans-serif;
+            font-size:0.85rem;font-weight:700;letter-spacing:2px;cursor:pointer">
+            EQUIP THIS COLOR
+          </button>
+        ` : `
+          <div style="text-align:center;padding:20px 0">
+            <div style="font-size:3rem;margin-bottom:12px">🎨</div>
+            <div style="color:#fff;font-weight:800;font-size:0.95rem;margin-bottom:6px">Custom Color Picker</div>
+            <div style="color:rgba(255,255,255,0.4);font-size:0.78rem;margin-bottom:20px">Unlock once, use any color forever</div>
+            <button onclick="buyCustomPicker()"
+              style="padding:14px 28px;border-radius:14px;border:none;
+              background:${coins>=500?'#5dcc7a':'rgba(255,255,255,0.08)'};
+              color:${coins>=500?'#0a1f10':'rgba(255,255,255,0.4)'};
+              font-family:'Orbitron',sans-serif;font-size:0.85rem;font-weight:700;
+              letter-spacing:2px;cursor:pointer">
+              🪙 500 — UNLOCK
+            </button>
+          </div>
+        `}
+      </div>`;
+    return;
+  }
+
+  const items = SHOP_ITEMS[tab];
+  grid.innerHTML = items.map(item => {
+    const owned     = shopOwned.includes(item.id);
+    const equipped  = shopEquipped[tab] === item.id;
+    const canAfford = coins >= item.price;
+
+    let previewStyle = '', previewContent = '';
+    if (item.color) {
+      previewStyle = `background:${item.color};`;
+    } else if (item.anim === 'rainbow') {
+      previewStyle = 'background:linear-gradient(135deg,#ff6b9d,#ffd166,#5dcc7a,#5bc8fa,#a29bfe);';
+    } else if (item.anim === 'fire') {
+      previewStyle = 'background:linear-gradient(180deg,#ffd166,#ff9f43,#e17055);';
+    } else if (item.anim === 'ice') {
+      previewStyle = 'background:linear-gradient(180deg,#dfe6e9,#5bc8fa,#a29bfe);';
+    } else if (item.anim === 'gold') {
+      previewStyle = 'background:linear-gradient(135deg,#ffd166,#fdcb6e,#fff3cd);';
+    } else if (item.anim === 'ocean') {
+      previewStyle = 'background:linear-gradient(180deg,#0984e3,#00cec9,#55efc4);';
+    } else if (item.anim === 'blood') {
+      previewStyle = 'background:linear-gradient(180deg,#c0392b,#922b21);';
+    } else if (item.anim === 'toxic') {
+      previewStyle = 'background:linear-gradient(135deg,#badc58,#6ab04c);';
+    } else if (item.anim === 'electric') {
+      previewStyle = 'background:linear-gradient(135deg,#00e5ff,#e0f7fa);';
+    } else if (item.anim === 'sunset') {
+      previewStyle = 'background:linear-gradient(135deg,#e17055,#ffd166,#fd79a8);';
+    } else if (item.anim === 'void') {
+      previewStyle = 'background:linear-gradient(135deg,#2d3436,#6c3483);';
+    }
+    if (item.emoji) previewContent = item.emoji;
+    if (item.badge) previewContent = item.badge;
+
+    const badgeHtml = equipped ? '<span class="shop-item-badge equipped">ON</span>'
+                    : owned    ? '<span class="shop-item-badge owned">OWNED</span>'
+                    : '';
+
+    const priceLabel = item.price === 0  ? '<span class="shop-item-price free">FREE</span>'
+                     : owned             ? '<span class="shop-item-price free">✓ OWNED</span>'
+                     : canAfford         ? `<span class="shop-item-price">🪙 ${item.price}</span>`
+                     : `<span class="shop-item-price" style="color:rgba(255,92,92,0.8)">🪙 ${item.price}</span>`;
+
+    return `<div class="shop-item${owned?' owned':''}${equipped?' active':''}"
+              onclick="shopTap('${tab}','${item.id}',${item.price})">
+      ${badgeHtml}
+      <div class="shop-item-preview" style="${previewStyle}">${previewContent}</div>
+      <div class="shop-item-name">${item.name}</div>
+      ${priceLabel}
+    </div>`;
+  }).join('');
+}
+
+// Handle tapping a shop item
+function shopTap(tab, id, price) {
+  const owned = shopOwned.includes(id);
+
+  if (!owned) {
+    if (coins < price) { showToast('❌ Not enough coins!'); return; }
+    coins -= price;
+    localStorage.setItem('bulb_coins', coins);
+    shopOwned.push(id);
+  }
+
+  // Equip based on tab
+  if (tab === 'colors') {
+    shopEquipped.colors   = id;
+    shopEquipped.animated = null; // turn off animated
+    shopEquipped.custom   = null; // CLEAR custom so solid color actually shows
+  } else if (tab === 'animated') {
+    shopEquipped.animated = id;
+    shopEquipped.custom   = null; // clear custom
+  } else {
+    shopEquipped[tab] = id;
+  }
+
+  saveShop();
+
+  // ── Apply color change immediately to any running game ──
+  // Without this, players have to die and restart to see their new skin.
+  if (gameRunning && playerPieces.length) {
+    const newColor = getPlayerColor();
+    playerPieces.forEach(p => p.color = newColor);
+  }
+
+  renderShopTab(tab);
+  document.getElementById('shopCoinDisplay').textContent = coins;
+  const itemName = id.split('_').slice(1).join(' ');
+  showToast(`✅ ${itemName.charAt(0).toUpperCase() + itemName.slice(1)} equipped!`);
+}
+
+// Increment animFrame each game loop tick for animated skins
+// and update player piece colors live
+function tickShopAnimations() {
+  animFrame++;
+  // Always update player color every frame —
+  // animated skins need per-frame updates, solid colors need it on equip.
+  // This is cheap and ensures color is always in sync with shop state.
+  if (gameRunning && playerPieces.length) {
+    const c = getPlayerColor();
+    playerPieces.forEach(p => p.color = c);
+  }
+}
+// ═══════════════════════════════════════════════════════════════
+//  SETTINGS — Stage 7
+// ═══════════════════════════════════════════════════════════════
+
+// Load persisted settings
+const settingsData = lsGet('bulb_settings', {});
+let sfxOn        = settingsData.sfx        ?? false; // SFX off by default (no audio files needed)
+let showLB       = settingsData.leaderboard ?? true;
+let showXPBar    = settingsData.xpbar       ?? true;
+
+function saveSetting(key, val) {
+  settingsData[key] = val;
+  localStorage.setItem('bulb_settings', JSON.stringify(settingsData));
+  if (key === 'sfx')         sfxOn    = val;
+  if (key === 'leaderboard') showLB   = val;
+  if (key === 'xpbar')       showXPBar = val;
+  applySettings();
+}
+
+function applySettings() {
+  // Leaderboard visibility during game
+  const lb = document.getElementById('leaderboard');
+  if (lb) lb.style.display = (gameRunning && showLB) ? 'block' : (gameRunning ? 'none' : 'none');
+  // XP bar visibility
+  const xb = document.getElementById('xpBar');
+  if (xb) xb.style.display = showXPBar ? 'block' : 'none';
+}
+
+function openSettings() {
+  // Sync toggles to current state
+  document.getElementById('sfxToggle').checked = sfxOn;
+  document.getElementById('lbToggle').checked  = showLB;
+  document.getElementById('xpToggle').checked  = showXPBar;
+  // Show name
+  const name = localStorage.getItem('bulb_player_name') || '—';
+  document.getElementById('settingsNameDisplay').textContent = name;
+  // Stats
+  document.getElementById('statLevel').textContent    = level;
+  document.getElementById('statCoins').textContent    = coins;
+  document.getElementById('statBestMass').textContent = localStorage.getItem('bulb_best_mass') || '0';
+  document.getElementById('statGames').textContent    = localStorage.getItem('bulb_games')     || '0';
+  document.getElementById('settingsScreen').style.display = 'flex';
+}
+
+function closeSettings() {
+  document.getElementById('settingsScreen').style.display = 'none';
+}
+
+function resetName() {
+  localStorage.removeItem('bulb_player_name');
+  document.getElementById('nameInput').value = '';
+  document.getElementById('settingsNameDisplay').textContent = '—';
+  showToast('✅ Name cleared — enter a new one on the menu!');
+}
+
+function resetProgress() {
+  if (!confirm('Reset your XP, level and coins? Your skins stay.')) return;
+  xp = 0; level = 1; coins = 0;
+  localStorage.setItem('bulb_xp', '0');
+  localStorage.setItem('bulb_level', '1');
+  localStorage.setItem('bulb_coins', '0');
+  document.getElementById('statLevel').textContent = '1';
+  document.getElementById('statCoins').textContent = '0';
+  showToast('✅ Progress reset!');
+}
+
+function resetEverything() {
+  if (!confirm('Wipe EVERYTHING? Name, skins, progress — all gone.')) return;
+  localStorage.clear();
+  location.reload();
+}
+
+// ── Stats tracking ──────────────────────────────────────────
+function recordGameStart() {
+  const g = parseInt(localStorage.getItem('bulb_games') || '0');
+  localStorage.setItem('bulb_games', g + 1);
+}
+
+function recordBestMass(mass) {
+  const best = parseInt(localStorage.getItem('bulb_best_mass') || '0');
+  if (mass > best) localStorage.setItem('bulb_best_mass', mass);
+}
+
+// ── SFX — generated with Web Audio API (no files needed) ────
+const _audioCtx = window.AudioContext ? new AudioContext() : null;
+
+function playSFX(type) {
+  if (!sfxOn || !_audioCtx) return;
+  const osc  = _audioCtx.createOscillator();
+  const gain = _audioCtx.createGain();
+  osc.connect(gain); gain.connect(_audioCtx.destination);
+  const now = _audioCtx.currentTime;
+
+  if (type === 'eat') {
+    // Short rising blip — satisfying pop
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc.start(now); osc.stop(now + 0.1);
+  } else if (type === 'eatbot') {
+    // Deeper thud — eating a bot feels heavier
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.18);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  } else if (type === 'death') {
+    // Descending wail
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(60, now + 0.5);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc.start(now); osc.stop(now + 0.5);
+  } else if (type === 'levelup') {
+    // Cheerful ascending chord
+    [523, 659, 784].forEach((freq, i) => {
+      const o = _audioCtx.createOscillator();
+      const g = _audioCtx.createGain();
+      o.connect(g); g.connect(_audioCtx.destination);
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0, now + i * 0.08);
+      g.gain.linearRampToValueAtTime(0.15, now + i * 0.08 + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.3);
+      o.start(now + i * 0.08); o.stop(now + i * 0.08 + 0.35);
+    });
+    return;
+  } else if (type === 'split') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(500, now);
+    osc.frequency.exponentialRampToValueAtTime(250, now + 0.12);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.start(now); osc.stop(now + 0.12);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MULTIPLAYER — Private Rooms via PeerJS (WebRTC peer-to-peer)
+//
+//  Architecture:
+//  HOST: runs the full game simulation, broadcasts state to clients
+//  CLIENT: sends input to host, receives state and renders it
+//
+//  Max 8 players per room. Room code = first 6 chars of host's peer ID.
+// ═══════════════════════════════════════════════════════════════
+
+const MAX_ROOM_PLAYERS = 8;
+const PLAYER_COLORS = ['#5dcc7a','#5bc8fa','#ff6b9d','#ffd166','#a29bfe','#ff9f43','#fd79a8','#e17055'];
+
+let peer          = null;   // our PeerJS peer
+let hostConn      = null;   // client → host connection
+let clientConns   = [];     // host's connections to each client
+let isHost        = false;
+let inRoom        = false;
+let roomPlayers   = [];     // [{ id, name, color }]
+let myRoomId      = null;   // our peer ID
+let mpInputs      = {};     // host stores latest input from each client peer id
+
+// ── Open/close room screen ──────────────────────────────────
+function openRooms() {
+  document.getElementById('roomScreen').style.display = 'flex';
+}
+function closeRooms() {
+  document.getElementById('roomScreen').style.display = 'none';
+  document.getElementById('joinPanel').style.display = 'none';
+}
+function showCreate() {
+  document.getElementById('joinPanel').style.display = 'none';
+  createRoom();
+}
+function showJoin() {
+  document.getElementById('joinPanel').style.display = 'block';
+  document.getElementById('roomCodeInput').focus();
+}
+
+// ── Initialise PeerJS peer ────────────────────────────────────
+// ICE server config — multiple STUN + TURN servers so school firewalls can't block all of them.
+// TURN servers relay traffic through a server instead of direct peer-to-peer,
+// which bypasses most corporate/school NAT firewalls completely.
+const ICE_SERVERS = {
+  iceServers: [
+    // Google STUN (often blocked at schools but try first — it's fast)
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    // Open Relay free TURN servers — these work even behind strict firewalls
+    // because traffic goes through port 443 (same as HTTPS, almost never blocked)
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:443?transport=tcp', // TCP fallback for strict firewalls
+        'turns:openrelay.metered.ca:443',              // TLS version
+      ],
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    // Cloudflare STUN — reliable and rarely blocked
+    { urls: 'stun:stun.cloudflare.com:3478' },
+  ],
+  iceCandidatePoolSize: 10, // gather more candidates for better connectivity
+};
+
+function initPeer(onReady, customId = null) {
+  if (peer && !peer.destroyed && !customId) { onReady(peer); return; }
+  if (peer && !peer.destroyed) { peer.destroy(); }
+  // If customId is provided (host), use it as the peer ID
+  // This means the room code IS the peer ID — joiners just connect directly
+  const opts = { debug: 0, config: ICE_SERVERS };
+  if (customId) opts.id = customId;
+  peer = new Peer(opts);
+  peer.on('open', id => { myRoomId = id; onReady(peer); });
+  peer.on('error', err => {
+    // If custom ID is taken, generate a new one and retry
+    if (err.type === 'unavailable-id') {
+      initPeer(onReady, generateRoomCode());
+      return;
+    }
+    const msgs = {
+      'network':          '❌ Network error — check your connection.',
+      'peer-unavailable': '❌ Room not found — check the code.',
+      'server-error':     '❌ Server error — try again in a moment.',
+      'socket-error':     '❌ Connection blocked — try a different network.',
+      'browser-incompatible': '❌ Browser not supported — use Chrome.',
+    };
+    showToast(msgs[err.type] || `❌ Connection error: ${err.type}`);
+    document.getElementById('joinStatus').textContent = msgs[err.type] || '❌ Failed.';
+  });
+}
+
+// Generate a clean 6-char uppercase room code (letters + numbers, easy to type)
+function generateRoomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I confusion
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+// ── CREATE ROOM ───────────────────────────────────────────────
+function createRoom() {
+  const name = nameInput.value.trim();
+  if (!name) { showToast('⚠️ Enter your name first!'); return; }
+  showToast('⏳ Creating room…');
+
+  const code = generateRoomCode();
+
+  // Host's peer ID = the room code itself.
+  // Joiners connect to this exact ID using just the 6-char code.
+  initPeer(p => {
+    isHost    = true;
+    inRoom    = true;
+    roomPlayers = [{ id: myRoomId, name, color: PLAYER_COLORS[0] }];
+    mpInputs    = {};
+
+    // Listen for incoming connections
+    p.on('connection', conn => {
+      if (roomPlayers.length >= MAX_ROOM_PLAYERS) {
+        conn.send({ type: 'full' });
+        conn.close(); return;
+      }
+
+      conn.on('open', () => {
+        const playerColor = PLAYER_COLORS[roomPlayers.length % PLAYER_COLORS.length];
+        clientConns.push(conn);
+
+        conn.on('data', data => {
+          if (data.type === 'join') {
+            // New player joined — add them
+            const newPlayer = { id: conn.peer, name: data.name, color: playerColor };
+            roomPlayers.push(newPlayer);
+            mpInputs[conn.peer] = { x: 0, y: 0 };
+
+            // Tell everyone the updated player list
+            broadcastToAll({ type: 'lobby', players: roomPlayers });
+            updateLobbyUI();
+
+            // Confirm to the joiner
+            conn.send({ type: 'joined', players: roomPlayers, yourId: conn.peer });
+          } else if (data.type === 'input') {
+            mpInputs[conn.peer] = data.dir;
+          }
+        });
+
+        conn.on('close', () => {
+          clientConns = clientConns.filter(c => c !== conn);
+          roomPlayers = roomPlayers.filter(p => p.id !== conn.peer);
+          delete mpInputs[conn.peer];
+          broadcastToAll({ type: 'lobby', players: roomPlayers });
+          updateLobbyUI();
+        });
+      });
+    });
+
+    closeRooms();
+    openLobby(code, true);
+  }, code);
+}
+
+// ── JOIN ROOM ─────────────────────────────────────────────────
+function joinRoom() {
+  const name = nameInput.value.trim();
+  const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+  if (!name) { showToast('⚠️ Enter your name first!'); return; }
+  if (code.length < 6) { showToast('⚠️ Enter a valid 6-digit code!'); return; }
+
+  document.getElementById('joinStatus').textContent = 'Connecting…';
+  initPeer(p => {
+    // The room code IS the host's peer ID — connect directly
+    const conn = p.connect(code, { reliable: true });
+
+    conn.on('open', () => {
+      hostConn = conn;
+      conn.send({ type: 'join', name });
+      document.getElementById('joinStatus').textContent = 'Connected! Waiting for host…';
+    });
+
+    conn.on('data', data => {
+      if (data.type === 'full') {
+        showToast('❌ Room is full!');
+        document.getElementById('joinStatus').textContent = 'Room is full.';
+        conn.close(); return;
+      }
+      if (data.type === 'joined') {
+        isHost      = false;
+        inRoom      = true;
+        roomPlayers = data.players;
+        myRoomId    = data.yourId;
+        closeRooms();
+        openLobby(code, false);
+        updateLobbyUI();
+      }
+      if (data.type === 'lobby') {
+        roomPlayers = data.players;
+        updateLobbyUI();
+      }
+      if (data.type === 'start') {
+        roomPlayers = data.players;
+        startMultiplayerGame(data.spawnIndex);
+      }
+      if (data.type === 'state') {
+        renderMpState(data);
+      }
+      if (data.type === 'kicked') {
+        leaveRoom();
+        showToast('You were disconnected from the room.');
+      }
+    });
+
+    conn.on('close', () => {
+      if (inRoom) { leaveRoom(); showToast('Host disconnected.'); }
+    });
+
+    conn.on('error', () => {
+      document.getElementById('joinStatus').textContent = '❌ Could not connect. Check the code.';
+    });
+  });
+}
+
+// ── LOBBY UI ──────────────────────────────────────────────────
+function openLobby(code, isH) {
+  document.getElementById('lobbyCode').textContent = code;
+  document.getElementById('lobbyCodeLabel').textContent =
+    isH ? 'Share this code with friends' : 'Waiting for host to start…';
+  document.getElementById('lobbyStartBtn').style.display = isH ? 'block' : 'none';
+  document.getElementById('lobbyScreen').style.display   = 'flex';
+  updateLobbyUI();
+}
+
+function updateLobbyUI() {
+  const list = document.getElementById('lobbyPlayerList');
+  if (!roomPlayers.length) {
+    list.innerHTML = '<div class="lobby-waiting">Waiting for players…</div>';
+    return;
+  }
+  list.innerHTML = roomPlayers.map((p, i) => `
+    <div class="lobby-player-row">
+      <div class="lobby-player-dot" style="background:${p.color}"></div>
+      <span class="lobby-player-name">${p.name}</span>
+      <span class="lobby-player-badge">${i === 0 ? '👑 HOST' : 'PLAYER'}</span>
+    </div>`).join('');
+}
+
+// ── HOST STARTS GAME ─────────────────────────────────────────
+function hostStartGame() {
+  if (!isHost || roomPlayers.length < 1) return;
+  // Send start signal with each player's spawn index
+  broadcastToAll({ type: 'start', players: roomPlayers, spawnIndex: -1 });
+  // Host starts with spawnIndex 0, clients get their own index from their join order
+  clientConns.forEach((conn, i) => {
+    conn.send({ type: 'start', players: roomPlayers, spawnIndex: i + 1 });
+  });
+  startMultiplayerGame(0);
+}
+
+function broadcastToAll(data) {
+  clientConns.forEach(c => { try { c.send(data); } catch(e) {} });
+}
+
+// ── START MULTIPLAYER GAME ────────────────────────────────────
+function startMultiplayerGame(spawnIndex) {
+  document.getElementById('lobbyScreen').style.display = 'none';
+  const name = nameInput.value.trim();
+  const myColor = roomPlayers[spawnIndex]?.color || getPlayerColor();
+
+  // Use existing startGame flow but inject room player blobs
+  document.getElementById('menuScreen').style.display  = 'none';
+  document.getElementById('deathScreen').classList.remove('show');
+  document.getElementById('gameScreen').style.display  = 'block';
+  document.getElementById('hud').style.display         = 'block';
+
+  const isTouch = 'ontouchstart' in window;
+  joystickBase.style.display = isTouch ? 'block' : 'none';
+  _splitBtnEl.style.display  = isTouch ? 'flex'  : 'none';
+  _mergeBtnEl.style.display  = isTouch ? 'flex'  : 'none';
+  _ejectBtnEl.style.display  = isTouch ? 'flex'  : 'none';
+
+  if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+
+  menuAnimating = false;
+  initGame(name);
+  recordGameStart();
+
+  // Override player color with room color
+  playerPieces.forEach(p => p.color = myColor);
+
+  // Spread spawn positions so players don't all start on top of each other
+  if (spawnIndex > 0) {
+    const angle = (spawnIndex / MAX_ROOM_PLAYERS) * Math.PI * 2;
+    const dist  = 600;
+    playerPieces[0].x = WORLD_SIZE/2 + Math.cos(angle) * dist;
+    playerPieces[0].y = WORLD_SIZE/2 + Math.sin(angle) * dist;
+  }
+
+  updateJoyCenter();
+  gameRunning = true;
+  document.getElementById('leaderboard').style.display = showLB ? 'block' : 'none';
+  document.getElementById('xpBar').style.display = showXPBar ? 'block' : 'none';
+
+  // If host, start broadcasting state to clients
+  if (isHost) {
+    mpInputs[myRoomId] = { x: 0, y: 0 };
+    // Add other players as visible blobs on the host's world
+    roomPlayers.forEach((rp, i) => {
+      if (i === 0) return; // skip self
+      const angle = (i / MAX_ROOM_PLAYERS) * Math.PI * 2;
+      bots.push({
+        name: rp.name, color: rp.color,
+        x: WORLD_SIZE/2 + Math.cos(angle) * 600,
+        y: WORLD_SIZE/2 + Math.sin(angle) * 600,
+        r: 22, vx: 0, vy: 0, mass: 0,
+        team: -1, targetType: 'food', targetFood: null,
+        wanderAngle: 0, wanderTimer: 0, chasing: false, chaseTimer: 0,
+        _mpId: rp.id, // mark as a real player, not AI
+      });
+    });
+  }
+
+  gameLoop();
+
+  // After game starts, hook input broadcasting (client side)
+  if (!isHost && hostConn) {
+    const _origHandleJoy = handleJoystick;
+    setInterval(() => {
+      if (!inRoom || !hostConn) return;
+      hostConn.send({ type: 'input', dir: inputDir });
+    }, 50); // send input 20 times/second
+  }
+}
+
+// ── HOST: broadcast game state 20x/second ────────────────────
+setInterval(() => {
+  if (!isHost || !inRoom || !gameRunning) return;
+  const state = {
+    type: 'state',
+    pieces: playerPieces.map(p => ({ x:p.x, y:p.y, r:p.r, color:p.color, name:p.name, mass:p.mass })),
+    bots:   bots.map(b => ({ x:b.x, y:b.y, r:b.r, color:b.color, name:b.name })),
+    foods:  foodPellets.filter((_,i) => i % 4 === 0).map(f => ({ x:f.x, y:f.y, r:f.r, color:f.color })),
+  };
+  broadcastToAll(state);
+}, 50);
+
+// ── CLIENT: render host's state ───────────────────────────────
+let mpState = null;
+function renderMpState(data) { mpState = data; }
+
+// ── LEAVE ROOM ────────────────────────────────────────────────
+function leaveRoom() {
+  inRoom = false; isHost = false;
+  if (hostConn) { hostConn.close(); hostConn = null; }
+  clientConns.forEach(c => c.close());
+  clientConns = []; roomPlayers = []; mpInputs = {};
+  if (peer) { peer.destroy(); peer = null; }
+  document.getElementById('lobbyScreen').style.display = 'none';
+  document.getElementById('roomScreen').style.display  = 'none';
+  if (gameRunning) goToMenu();
+}
+// ─────────────────────────────────────────────────────────────
+//  DEATH TIPS — 40 painfully obvious tips shown on death screen
+// ─────────────────────────────────────────────────────────────
+const DEATH_TIPS = [
+  "Try not to get eaten next time.",
+  "To win, simply be the biggest blob. Easy.",
+  "Touching bigger blobs is generally a bad idea.",
+  "If you see the death screen, you have died.",
+  "Pro tip: surviving longer increases your chance of not dying.",
+  "Being eaten is just the game's way of saying you lost.",
+  "Next time, consider eating others instead of being eaten.",
+  "Have you tried being bigger? Bigger blobs tend to win.",
+  "Moving away from danger is a strategy worth considering.",
+  "The blob that ate you was, statistically, bigger than you.",
+  "Food pellets exist. Eating them makes you grow. Just saying.",
+  "You can't win if you're dead. This is known.",
+  "If a blob is chasing you, it probably wants to eat you.",
+  "Splitting into 12 pieces and then getting confused is valid strategy.",
+  "The map has edges. Try not to forget that.",
+  "Fun fact: you can eject mass. It doesn't always help, but you can.",
+  "Smaller blobs run faster. Growing has consequences.",
+  "In this game, size matters. Scientifically proven.",
+  "The leaderboard exists. Being on it requires not dying immediately.",
+  "You lasted longer than last time. Probably.",
+  "Your blob gave everything. Mostly its life.",
+  "Getting eaten by someone named 'Rex' is arguably the worst way to go.",
+  "Viruses are spiky for a reason. That reason is you.",
+  "Next time try the 'don't get eaten' strat. It's meta right now.",
+  "There is no shame in dying. There is, however, this tip screen.",
+  "The merge button exists. Some say it's never been used correctly.",
+  "Fact: 100% of players who have died were touching another blob.",
+  "You were this close to winning. Probably not, but maybe.",
+  "Your final mass was recorded. The universe is indifferent to it.",
+  "Studies show that blobs who eat more food grow larger. Revolutionary.",
+  "If you're reading this, your blob is gone. Sorry for your loss.",
+  "A wise blob once said: don't split near viruses. You ignored this.",
+  "Speed decreases as you grow. You were very slow. Draw your own conclusions.",
+  "You can hide inside viruses when small. You were not small enough.",
+  "The opponent who ate you is now living your best life.",
+  "Eating 1600 food pellets would have made you very big. Just an observation.",
+  "Team mode has allies. Solo mode does not. Choose accordingly.",
+  "Your blob was unique. Just like every other blob that has ever died.",
+  "Three things are certain: death, taxes, and getting eaten by Krill.",
+  "Next time will be different. It won't be, but the optimism is nice.",
+];
+
+function getRandomTip() {
+  return DEATH_TIPS[Math.floor(Math.random() * DEATH_TIPS.length)];
+}
+// ─────────────────────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
