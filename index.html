@@ -1,0 +1,4495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Bulb</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; width: 100%;
+    overflow: hidden; background: #111;
+    font-family: 'Nunito', sans-serif;
+    touch-action: none;
+  }
+
+  /* ═══════════════ MENU ═══════════════ */
+  #menuScreen {
+    position: fixed; inset: 0; z-index: 30;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background-color: #141414;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px);
+    background-size: 36px 36px;
+  }
+  #menuCanvas { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+  .settings-btn {
+    position: fixed; top: 16px; left: 16px; z-index: 50;
+    width: 46px; height: 46px;
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s, transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .settings-btn:active { transform: scale(0.92); }
+
+  /* Rooms button — top right of menu */
+  .rooms-btn {
+    position: fixed; top: 16px; right: 16px; z-index: 50;
+    width: 46px; height: 46px;
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s, transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rooms-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.13); }
+
+  /* Challenge button — top left, next to settings */
+  .challenge-btn {
+    position: fixed; top: 16px; left: 68px; z-index: 50;
+    width: 46px; height: 46px;
+    background: rgba(255,209,102,0.12);
+    border: 1.5px solid rgba(255,209,102,0.3);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s, transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .challenge-btn:active { transform: scale(0.92); background: rgba(255,209,102,0.25); }
+  .shop-btn {
+    position: fixed; right: 0; top: 50%; z-index: 50;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    background: #5dcc7a; border: none;
+    border-radius: 16px 0 0 16px;
+    padding: 20px 11px; cursor: pointer; color: #0a1f10;
+    box-shadow: -4px 0 28px rgba(93,204,122,0.4);
+    transition: background 0.2s, transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shop-btn .shop-icon { font-size: 1.35rem; }
+  .shop-btn .shop-label {
+    writing-mode: vertical-lr; transform: rotate(180deg);
+    font-size: 0.62rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 2px;
+  }
+  .shop-btn:active { transform: translateY(-50%) scale(0.95); background: #4ab868; }
+  .center {
+    position: relative; z-index: 20;
+    width: 100%; height: 100dvh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px 32px;
+  }
+  .title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: clamp(2.2rem, 11vw, 4.5rem);
+    color: #ffffff; letter-spacing: 4px; line-height: 1; text-align: center;
+    text-shadow: 0 0 40px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.5);
+    margin-bottom: 14px;
+    animation: fadeDown 0.65s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .name-wrap {
+    width: 100%; max-width: 360px; margin-bottom: 14px;
+    animation: fadeDown 0.65s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .name-input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.14);
+    border-radius: 16px; padding: 15px 20px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.1rem; font-weight: 700;
+    color: #ffffff; text-align: center; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none; backdrop-filter: blur(8px);
+  }
+  .name-input::placeholder { color: rgba(255,255,255,0.22); font-weight: 600; }
+  .name-input:focus { border-color: rgba(255,255,255,0.4); box-shadow: 0 0 0 3px rgba(255,255,255,0.07); }
+  .name-input.error { border-color: #ff5c5c; box-shadow: 0 0 0 3px rgba(255,92,92,0.15); }
+  .play-btn {
+    width: 100%; max-width: 360px; padding: 18px;
+    border-radius: 18px; border: none; cursor: pointer;
+    font-family: 'Orbitron', sans-serif; font-weight: 700;
+    font-size: 1.15rem; letter-spacing: 4px;
+    background: #5dcc7a; color: #0a1f10;
+    box-shadow: 0 6px 32px rgba(93,204,122,0.45);
+    transition: transform 0.15s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    margin-bottom: 14px;
+    animation: fadeUp 0.65s 0.2s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .play-btn:active { transform: scale(0.97); }
+  .modes-row {
+    display: flex; gap: 12px;
+    width: 100%; max-width: 360px;
+    animation: fadeUp 0.65s 0.3s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .mode-btn {
+    flex: 1; padding: 13px 8px; border-radius: 14px;
+    border: 1.5px solid rgba(255,255,255,0.08); cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.78rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1px;
+    background: rgba(0,0,0,0.6); color: rgba(255,255,255,0.45);
+    transition: all 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+    backdrop-filter: blur(6px); text-align: center;
+  }
+  .mode-btn .m-icon { font-size: 1.15rem; display: block; margin-bottom: 5px; }
+  .mode-btn.selected { background: rgba(0,0,0,0.82); border-color: #5dcc7a; color: #5dcc7a; box-shadow: 0 0 18px rgba(93,204,122,0.18); }
+  .mode-btn:active { transform: scale(0.95); }
+
+  /* ═══════════════ GAME ═══════════════ */
+  #gameScreen { position: fixed; inset: 0; z-index: 20; display: none; }
+  #gameCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  /* ═══════════════ HUD ═══════════════ */
+  #hud { position: fixed; inset: 0; z-index: 25; pointer-events: none; display: none; }
+  #massDisplay {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem; font-weight: 700; color: #fff;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 6px 18px;
+    letter-spacing: 2px; backdrop-filter: blur(6px);
+    white-space: nowrap; /* never wrap to second line */
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  /* Level badge — left of mass display */
+  #levelBadge {
+    position: absolute; top: 14px; right: 14px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem; font-weight: 700; color: #ffd166;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,209,102,0.3);
+    border-radius: 10px; padding: 6px 12px;
+    letter-spacing: 1px; backdrop-filter: blur(6px);
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+  }
+  #levelBadge .lv-num { font-size: 1rem; color: #ffd166; }
+  #levelBadge .lv-coins { font-size: 0.65rem; color: #5dcc7a; margin-top: 2px; }
+
+  /* XP bar — thin strip just below mass display */
+  #xpBar {
+    position: absolute; top: 56px; left: 50%; transform: translateX(-50%);
+    width: 160px; height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px; overflow: hidden;
+  }
+  #xpFill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #5dcc7a, #5bc8fa);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+
+  /* Leaderboard — top right */
+  #leaderboard {
+    position: absolute; top: 58px; right: 10px;
+    width: 118px;
+    background: rgba(0,0,0,0.42);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 6px 8px;
+    backdrop-filter: blur(8px);
+    display: none;
+  }
+  #leaderboard .lb-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.45rem; font-weight: 700;
+    letter-spacing: 2px; color: rgba(255,255,255,0.3);
+    text-transform: uppercase; margin-bottom: 5px;
+    text-align: center;
+  }
+  .lb-row {
+    display: flex; align-items: center; gap: 4px;
+    margin-bottom: 3px; font-size: 0.6rem; font-weight: 700;
+    color: rgba(255,255,255,0.55);
+  }
+  .lb-row.me { color: #5dcc7a; }
+  .lb-rank { font-family: 'Orbitron', sans-serif; font-size: 0.5rem; color: rgba(255,255,255,0.25); width: 12px; text-align: right; flex-shrink: 0; }
+  .lb-row.me .lb-rank { color: #5dcc7a; }
+  .lb-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-mass { font-family: 'Orbitron', sans-serif; font-size: 0.5rem; color: rgba(255,255,255,0.35); flex-shrink: 0; }
+  .lb-row.me .lb-mass { color: #5dcc7a; }
+  #backBtn {
+    position: absolute; top: 14px; left: 14px;
+    pointer-events: all;
+    background: rgba(0,0,0,0.55);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 12px; padding: 8px 16px;
+    color: #fff; font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem; font-weight: 800;
+    cursor: pointer; backdrop-filter: blur(6px);
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s;
+  }
+  #backBtn:active { background: rgba(0,0,0,0.8); }
+
+  /* Fixed joystick — bottom right */
+  #joystickBase {
+    position: absolute; bottom: 48px; right: 48px;
+    width: 110px; height: 110px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.18);
+    display: none; pointer-events: none;
+    backdrop-filter: blur(4px);
+  }
+  #joystickKnob {
+    position: absolute; width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(93,204,122,0.7); border: 2px solid #5dcc7a;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    pointer-events: none; box-shadow: 0 0 14px rgba(93,204,122,0.4);
+  }
+
+  /* Split button — bottom left */
+  #splitBtn {
+    position: absolute; bottom: 48px; left: 28px;
+    pointer-events: all; display: none;
+    background: rgba(93,204,122,0.15);
+    border: 2px solid #5dcc7a; border-radius: 50%;
+    width: 70px; height: 70px; color: #5dcc7a;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; backdrop-filter: blur(6px);
+    -webkit-tap-highlight-color: transparent;
+    align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  #splitBtn:active  { background: rgba(93,204,122,0.4); }
+  #splitBtn.cooldown { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.04); }
+
+  /* Eject button — above merge button, bottom left */
+  #ejectBtn {
+    position: absolute; bottom: 218px; left: 28px;
+    pointer-events: all; display: none;
+    background: rgba(255,209,102,0.15);
+    border: 2px solid #ffd166; border-radius: 50%;
+    width: 70px; height: 70px; color: #ffd166;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.55rem; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; backdrop-filter: blur(6px);
+    -webkit-tap-highlight-color: transparent;
+    align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  #ejectBtn:active { background: rgba(255,209,102,0.4); }
+
+  /* Merge button — just above split button, bottom left */
+  #mergeBtn {
+    position: absolute; bottom: 130px; left: 28px;
+    pointer-events: all; display: none;
+    background: rgba(91,200,250,0.15);
+    border: 2px solid #5bc8fa; border-radius: 50%;
+    width: 70px; height: 70px; color: #5bc8fa;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; backdrop-filter: blur(6px);
+    -webkit-tap-highlight-color: transparent;
+    align-items: center; justify-content: center;
+    transition: background 0.15s, opacity 0.2s;
+    opacity: 0.3; /* dimmed when only 1 piece */
+  }
+  #mergeBtn.active  { opacity: 1; }
+  #mergeBtn:active  { background: rgba(91,200,250,0.4); }
+
+  /* ═══════════════ DEATH SCREEN ═══════════════ */
+  /* Slides in from transparent when the player dies */
+  #deathScreen {
+    position: fixed; inset: 0; z-index: 40;
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.78);
+    backdrop-filter: blur(6px);
+    animation: fadeIn 0.4s ease both;
+  }
+  #deathScreen.show { display: flex; }
+  .death-card {
+    background: rgba(20,20,20,0.95);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 28px; padding: 40px 36px;
+    text-align: center; max-width: 320px; width: 90%;
+    animation: popIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .death-emoji { font-size: 3rem; margin-bottom: 10px; display: block; }
+  .death-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.9rem; color: #ff6b6b;
+    margin-bottom: 6px; letter-spacing: 1px;
+  }
+  .death-eaten-by {
+    font-size: 0.85rem; color: rgba(255,255,255,0.45);
+    font-weight: 600; margin-bottom: 22px;
+  }
+  .death-eaten-by span { color: #fff; font-weight: 800; }
+  .death-stats {
+    display: flex; gap: 16px; justify-content: center;
+    margin-bottom: 28px;
+  }
+  .death-stat {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 12px 18px;
+    flex: 1;
+  }
+  .death-stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.3rem; font-weight: 700; color: #5dcc7a;
+    display: block;
+  }
+  .death-stat-lbl {
+    font-size: 0.65rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.35); margin-top: 3px; display: block;
+  }
+  .death-btn-row { display: flex; gap: 12px; }
+  .death-revive-btn {
+    width: 100%; margin-top: 10px; padding: 14px;
+    border-radius: 14px; border: 2px solid #5dcc7a;
+    background: rgba(93,204,122,0.12);
+    color: #5dcc7a; font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem; font-weight: 700; letter-spacing: 2px;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s; display: none;
+  }
+  .death-revive-btn:active { background: rgba(93,204,122,0.3); }
+  .death-tip {
+    margin-top: 16px; padding: 12px 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; text-align: center;
+  }
+  .death-tip-label {
+    font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 2px; color: rgba(255,255,255,0.25);
+    margin-bottom: 5px; display: block;
+  }
+  .death-tip-text {
+    font-size: 0.8rem; font-weight: 700;
+    color: rgba(255,255,255,0.6); line-height: 1.5;
+    font-style: italic;
+  }
+  .death-btn {
+    flex: 1; padding: 14px 10px; border-radius: 14px; border: none;
+    cursor: pointer; font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 2px;
+    transition: transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .death-btn:active { transform: scale(0.96); }
+  .death-btn.primary { background: #5dcc7a; color: #0a1f10; }
+  .death-btn.secondary {
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* ═══════════════ SHOP SCREEN ═══════════════ */
+  #shopScreen {
+    position: fixed; inset: 0; z-index: 35;
+    display: none; flex-direction: column;
+    background: #0e0e0e;
+    font-family: 'Nunito', sans-serif;
+  }
+  .shop-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+  }
+  .shop-header-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: 3px;
+  }
+  .shop-coin-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,209,102,0.1);
+    border: 1px solid rgba(255,209,102,0.25);
+    border-radius: 999px; padding: 6px 14px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem; font-weight: 700; color: #ffd166;
+  }
+  .shop-close {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 8px 14px;
+    color: #fff; font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem; font-weight: 800;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .shop-tabs {
+    display: flex; gap: 8px; padding: 12px 16px 0;
+    flex-shrink: 0;
+  }
+  .shop-tab {
+    flex: 1; padding: 8px 4px; border-radius: 10px;
+    border: 1.5px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.4);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.7rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1px;
+    cursor: pointer; text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+  }
+  .shop-tab.active {
+    border-color: #5dcc7a; color: #5dcc7a;
+    background: rgba(93,204,122,0.08);
+  }
+  .shop-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; padding: 14px 16px;
+    overflow-y: auto; flex: 1;
+  }
+  .shop-item {
+    background: rgba(255,255,255,0.04);
+    border: 1.5px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 14px 10px;
+    text-align: center; cursor: pointer;
+    transition: all 0.18s; position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shop-item.owned  { border-color: rgba(93,204,122,0.4); }
+  .shop-item.active { border-color: #5dcc7a; background: rgba(93,204,122,0.1); box-shadow: 0 0 16px rgba(93,204,122,0.2); }
+  .shop-item-preview {
+    width: 52px; height: 52px; border-radius: 50%;
+    margin: 0 auto 10px; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 1.5rem;
+  }
+  .shop-item-name {
+    font-size: 0.75rem; font-weight: 800; color: #fff;
+    margin-bottom: 4px;
+  }
+  .shop-item-price {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem; color: #ffd166;
+  }
+  .shop-item-price.free { color: #5dcc7a; }
+  .shop-item-badge {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 0.6rem; font-weight: 800;
+    padding: 2px 6px; border-radius: 6px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .shop-item-badge.equipped { background: #5dcc7a; color: #0a1f10; }
+  .shop-item-badge.owned    { background: rgba(255,255,255,0.15); color: #fff; }
+
+  @media (max-height: 640px) {
+    .shop-grid { gap: 8px; padding: 10px 12px; }
+    .shop-item { padding: 10px 8px; }
+    .shop-item-preview { width: 42px; height: 42px; margin-bottom: 6px; }
+  }
+  /* ═══════════════ MINIMAP ═══════════════ */
+  #minimap {
+    position: absolute; bottom: 20px; right: 20px;
+    width: 140px; height: 140px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; overflow: hidden;
+    display: none; /* shown only on PC via JS */
+    backdrop-filter: blur(4px);
+  }
+  #minimapCanvas { width: 100%; height: 100%; display: block; }
+  /* ═══════════════ MINIMAP (PC only) ═══════════════ */
+    position: absolute; bottom: 100px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 10px 20px;
+    font-family: 'Nunito', sans-serif; font-size: 0.8rem;
+    color: rgba(255,255,255,0.6); text-align: center;
+    display: none; white-space: nowrap; backdrop-filter: blur(6px);
+    pointer-events: all;
+  }
+  #spectateBar strong { color: #fff; }
+  #spectateStopBtn {
+    margin-left: 12px; background: none;
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 8px;
+    padding: 3px 10px; color: #fff; font-family: 'Nunito', sans-serif;
+    font-size: 0.75rem; cursor: pointer; font-weight: 700;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #victoryScreen {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.92); font-family: 'Nunito', sans-serif;
+    animation: fadeIn 0.4s ease;
+  }
+  .victory-card {
+    background: linear-gradient(160deg, #0d2b1a, #0a1f10);
+    border: 2px solid #5dcc7a; border-radius: 28px; padding: 40px 32px;
+    text-align: center; width: 90%; max-width: 380px;
+    box-shadow: 0 0 60px rgba(93,204,122,0.3);
+    animation: popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+  }
+  .victory-emoji { font-size: 4rem; display: block; margin-bottom: 12px; }
+  .victory-title {
+    font-family: 'Orbitron', sans-serif; font-size: 1.6rem;
+    font-weight: 900; color: #5dcc7a; letter-spacing: 4px; margin-bottom: 8px;
+  }
+  .victory-sub { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin-bottom: 24px; line-height: 1.6; }
+  .victory-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .victory-stat {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(93,204,122,0.2);
+    border-radius: 14px; padding: 14px 10px; text-align: center;
+  }
+  .victory-stat-val { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 700; color: #5dcc7a; display: block; }
+  .victory-stat-lbl { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.3); margin-top: 3px; display: block; }
+  .victory-wins-badge {
+    background: rgba(255,209,102,0.1); border: 1px solid rgba(255,209,102,0.3);
+    border-radius: 999px; padding: 8px 20px; margin-bottom: 20px; display: inline-block;
+    font-family: 'Orbitron', sans-serif; font-size: 0.75rem; font-weight: 700; color: #ffd166; letter-spacing: 2px;
+  }
+  .victory-btn {
+    width: 100%; padding: 16px; border-radius: 16px; border: none;
+    font-family: 'Orbitron', sans-serif; font-size: 0.9rem; font-weight: 700;
+    letter-spacing: 2px; cursor: pointer; margin-bottom: 10px;
+    transition: transform 0.15s; -webkit-tap-highlight-color: transparent;
+  }
+  .victory-btn:active { transform: scale(0.97); }
+  .victory-btn.primary   { background: #5dcc7a; color: #0a1f10; }
+  .victory-btn.secondary { background: rgba(255,255,255,0.07); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
+
+  /* ═══════════════ AD OVERLAY ═══════════════ */
+  #adOverlay {
+    position: fixed; inset: 0; z-index: 80;
+    background: rgba(0,0,0,0.97); display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'Nunito', sans-serif;
+  }
+  .ad-card { width: 90%; max-width: 380px; text-align: center; }
+  .ad-label {
+    font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 3px; color: rgba(255,255,255,0.25);
+    margin-bottom: 20px; display: block;
+  }
+  .ad-content {
+    width: 100%; aspect-ratio: 16/9;
+    background: linear-gradient(135deg, #0a1a0a, #0a1f10, #0d2b1a);
+    border-radius: 16px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; margin-bottom: 18px;
+    border: 1px solid rgba(93,204,122,0.15); position: relative; overflow: hidden;
+  }
+  .ad-brand {
+    font-family: 'Orbitron', sans-serif; font-size: 1.8rem;
+    font-weight: 900; color: #5dcc7a; letter-spacing: 4px;
+    text-shadow: 0 0 30px rgba(93,204,122,0.5); margin-bottom: 6px;
+  }
+  .ad-tagline { font-size: 0.72rem; color: rgba(255,255,255,0.35); letter-spacing: 2px; }
+  .ad-timer-row {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+  }
+  .ad-timer-label { font-size: 0.72rem; color: rgba(255,255,255,0.35); }
+  .ad-timer-count { font-family: 'Orbitron',sans-serif; font-size: 1rem; font-weight:700; color:#ffd166; }
+  .ad-progress-bar {
+    width: 100%; height: 4px; background: rgba(255,255,255,0.08);
+    border-radius: 999px; overflow: hidden; margin-bottom: 18px;
+  }
+  .ad-progress-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg,#5dcc7a,#5bc8fa); transition: width 1s linear;
+  }
+  .ad-reward-preview { font-size: 0.78rem; color: rgba(255,255,255,0.45); margin-bottom: 18px; line-height: 1.6; }
+  .ad-reward-preview strong { color: #ffd166; }
+  .ad-skip-btn {
+    width: 100%; padding: 14px; border-radius: 14px; border: none;
+    font-family: 'Orbitron',sans-serif; font-size: 0.8rem; font-weight:700;
+    letter-spacing: 2px; cursor: pointer; transition: all 0.15s;
+    background: #5dcc7a; color: #0a1f10;
+    -webkit-tap-highlight-color: transparent; opacity: 0.35; pointer-events: none;
+  }
+  .ad-skip-btn.ready { opacity: 1; pointer-events: all; }
+  .ad-skip-btn:active { transform: scale(0.97); }
+
+  .toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: rgba(8,8,8,0.93);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 10px 22px;
+    font-size: 0.85rem; font-weight: 700; color: #fff;
+    opacity: 0; transition: all 0.28s ease;
+    pointer-events: none; white-space: nowrap;
+    z-index: 200; backdrop-filter: blur(10px);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-22px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  /* ═══════════════ ROOM SCREEN ═══════════════ */
+  #roomScreen {
+    position: fixed; inset: 0; z-index: 35; display: none;
+    flex-direction: column; background: #0e0e0e;
+    font-family: 'Nunito', sans-serif; overflow-y: auto;
+  }
+  .room-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .room-header-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: 3px;
+  }
+  .room-close {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 8px 14px;
+    color: #fff; font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem; font-weight: 800;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .room-body { padding: 24px 20px; display: flex; flex-direction: column; gap: 16px; }
+  .room-option {
+    background: rgba(255,255,255,0.04);
+    border: 1.5px solid rgba(255,255,255,0.08);
+    border-radius: 20px; padding: 24px 20px;
+    cursor: pointer; text-align: center;
+    transition: all 0.18s; -webkit-tap-highlight-color: transparent;
+  }
+  .room-option:active { transform: scale(0.97); }
+  .room-option.create { border-color: #5dcc7a; }
+  .room-option.join   { border-color: #5bc8fa; }
+  .room-option-icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+  .room-option-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.95rem; font-weight: 700; color: #fff;
+    letter-spacing: 2px; margin-bottom: 6px;
+  }
+  .room-option-sub { font-size: 0.78rem; color: rgba(255,255,255,0.4); }
+  .room-input-wrap { margin-top: 12px; }
+  .room-input {
+    width: 100%; background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.14);
+    border-radius: 14px; padding: 14px 18px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.4rem; font-weight: 700;
+    color: #fff; text-align: center; outline: none; letter-spacing: 6px;
+    -webkit-appearance: none;
+  }
+  .room-input:focus { border-color: #5bc8fa; }
+  .room-btn {
+    width: 100%; padding: 16px; border-radius: 14px; border: none;
+    font-family: 'Orbitron', sans-serif; font-size: 0.9rem;
+    font-weight: 700; letter-spacing: 2px; cursor: pointer;
+    margin-top: 12px; -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s;
+  }
+  .room-btn:active { transform: scale(0.97); }
+  .room-btn.green { background: #5dcc7a; color: #0a1f10; }
+  .room-btn.blue  { background: #5bc8fa; color: #0a1020; }
+  .room-status {
+    text-align: center; font-size: 0.82rem;
+    color: rgba(255,255,255,0.5); margin-top: 8px; min-height: 20px;
+  }
+
+  /* ═══════════════ LOBBY SCREEN ═══════════════ */
+  #lobbyScreen {
+    position: fixed; inset: 0; z-index: 36; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    background: #0a0a0a;
+  }
+  .lobby-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem; font-weight: 700; color: #fff;
+    letter-spacing: 3px; margin-bottom: 6px;
+  }
+  .lobby-code {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.4rem; font-weight: 900; color: #5dcc7a;
+    letter-spacing: 8px; margin-bottom: 6px;
+  }
+  .lobby-code-label {
+    font-size: 0.7rem; color: rgba(255,255,255,0.3);
+    text-transform: uppercase; letter-spacing: 2px; margin-bottom: 28px;
+  }
+  .lobby-players {
+    width: 90%; max-width: 360px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px; padding: 16px;
+    margin-bottom: 24px; min-height: 200px;
+  }
+  .lobby-player-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    animation: fadeUp 0.3s ease both;
+  }
+  .lobby-player-row:last-child { border-bottom: none; }
+  .lobby-player-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  }
+  .lobby-player-name {
+    font-size: 0.9rem; font-weight: 700; color: #fff; flex: 1;
+  }
+  .lobby-player-badge {
+    font-size: 0.65rem; color: rgba(255,255,255,0.35);
+    font-family: 'Orbitron', sans-serif; letter-spacing: 1px;
+  }
+  .lobby-waiting {
+    font-size: 0.75rem; color: rgba(255,255,255,0.3);
+    text-align: center; padding: 20px; letter-spacing: 1px;
+  }
+  .lobby-start-btn {
+    width: 90%; max-width: 360px; padding: 18px;
+    border-radius: 16px; border: none;
+    font-family: 'Orbitron', sans-serif; font-size: 1rem;
+    font-weight: 700; letter-spacing: 3px;
+    background: #5dcc7a; color: #0a1f10;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s; display: none;
+  }
+  .lobby-start-btn:active { transform: scale(0.97); }
+  .lobby-leave-btn {
+    margin-top: 14px; background: none; border: none;
+    color: rgba(255,255,255,0.3); font-family: 'Nunito', sans-serif;
+    font-size: 0.8rem; cursor: pointer;
+  }
+
+  @media (max-height: 640px) {
+    .title { font-size: clamp(2.2rem, 12vw, 3.5rem); margin-bottom: 10px; }
+    .play-btn { padding: 14px; font-size: 1.15rem; margin-bottom: 10px; }
+    .mode-btn { padding: 10px 8px; }
+  }
+
+  /* ═══════════════ CHALLENGE SCREEN ═══════════════ */
+  #challengeScreen {
+    position: fixed; inset: 0; z-index: 35; display: none;
+    flex-direction: column; background: #0e0e0e;
+    font-family: 'Nunito', sans-serif;
+  }
+  .challenge-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .challenge-header-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem; font-weight: 700; color: #ffd166; letter-spacing: 3px;
+  }
+  .challenge-close {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 8px 14px;
+    color: #fff; font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem; font-weight: 800; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .challenge-body { padding: 24px 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+  .challenge-date-label {
+    font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 2px; color: rgba(255,255,255,0.3); text-align: center;
+  }
+  .challenge-card {
+    background: rgba(255,209,102,0.06);
+    border: 2px solid rgba(255,209,102,0.25);
+    border-radius: 20px; padding: 24px 20px; text-align: center;
+  }
+  .challenge-card.done {
+    background: rgba(93,204,122,0.07);
+    border-color: rgba(93,204,122,0.35);
+  }
+  .challenge-icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+  .challenge-task {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.95rem; font-weight: 700; color: #fff;
+    letter-spacing: 1px; margin-bottom: 8px; line-height: 1.4;
+  }
+  .challenge-progress-bar {
+    width: 100%; height: 8px;
+    background: rgba(255,255,255,0.1); border-radius: 999px;
+    overflow: hidden; margin: 14px 0 8px;
+  }
+  .challenge-progress-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #ffd166, #ff9f43);
+    transition: width 0.4s ease;
+  }
+  .challenge-card.done .challenge-progress-fill { background: linear-gradient(90deg, #5dcc7a, #5bc8fa); }
+  .challenge-progress-label {
+    font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.45);
+  }
+  .challenge-reward-box {
+    margin-top: 18px; padding: 14px 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+  }
+  .challenge-reward-label {
+    font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 2px; color: rgba(255,255,255,0.3); display: block; margin-bottom: 6px;
+  }
+  .challenge-reward-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.4rem; font-weight: 700; color: #ffd166;
+  }
+  .challenge-done-badge {
+    display: inline-block; margin-top: 14px;
+    background: #5dcc7a; color: #0a1f10;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 2px;
+    padding: 8px 20px; border-radius: 999px;
+  }
+  .challenge-tip {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px; padding: 16px 18px;
+    font-size: 0.8rem; color: rgba(255,255,255,0.45); line-height: 1.6;
+  }
+  .challenge-tip strong { color: rgba(255,255,255,0.75); }
+
+  /* ═══════════════ SETTINGS SCREEN ═══════════════ */
+  #settingsScreen {
+    position: fixed; inset: 0; z-index: 35;
+    display: none; flex-direction: column;
+    background: #0e0e0e; font-family: 'Nunito', sans-serif;
+    overflow-y: auto;
+  }
+  .settings-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;
+  }
+  .settings-header-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: 3px;
+  }
+  .settings-close {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 8px 14px;
+    color: #fff; font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem; font-weight: 800;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .settings-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .settings-section-label {
+    font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 2px; color: rgba(255,255,255,0.3); margin-bottom: 2px;
+  }
+  .settings-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px; overflow: hidden;
+  }
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row-left { display: flex; flex-direction: column; gap: 2px; }
+  .settings-row-title { font-size: 0.9rem; font-weight: 700; color: #fff; }
+  .settings-row-sub   { font-size: 0.72rem; color: rgba(255,255,255,0.35); }
+  .toggle { position: relative; width: 48px; height: 26px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; cursor: pointer;
+    background: rgba(255,255,255,0.12); border-radius: 999px; transition: background 0.2s;
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px; transition: transform 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: #5dcc7a; }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(22px); }
+  .settings-action {
+    padding: 14px 18px; border-radius: 12px; border: none;
+    font-family: 'Nunito', sans-serif; font-size: 0.85rem; font-weight: 800;
+    cursor: pointer; width: 100%; text-align: left;
+    -webkit-tap-highlight-color: transparent; transition: opacity 0.15s;
+  }
+  .settings-action:active { opacity: 0.7; }
+  .settings-action.danger { background: rgba(255,92,92,0.1); color: #ff5c5c; border: 1px solid rgba(255,92,92,0.2); }
+  .settings-action.normal { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.08); }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px; padding: 14px 12px; text-align: center;
+  }
+  .stat-card-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem; font-weight: 700; color: #5dcc7a; display: block;
+  }
+  .stat-card-lbl {
+    font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 1.5px; color: rgba(255,255,255,0.3); margin-top: 4px; display: block;
+  }
+</style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3378819349831704"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+
+<!-- ═══════════════ MENU ═══════════════ -->
+<div id="menuScreen">
+  <div class="grid-bg"></div>
+  <canvas id="menuCanvas"></canvas>
+  <button class="settings-btn" onclick="openSettings()">⚙️</button>
+  <button class="challenge-btn" onclick="openChallenges()">🎯</button>
+  <button class="rooms-btn" onclick="openRooms()">🌐</button>
+  <button class="shop-btn" onclick="openShop()">
+    <span class="shop-icon">🛍️</span>
+    <span class="shop-label">Shop</span>
+  </button>
+  <div class="center">
+    <div class="title">THE BULB</div>
+    <div id="menuLevelBadge" style="
+      font-family:'Orbitron',sans-serif; font-size:0.72rem; font-weight:700;
+      color:#ffd166; letter-spacing:2px; margin-bottom:10px;
+      background:rgba(255,209,102,0.1); border:1px solid rgba(255,209,102,0.25);
+      border-radius:999px; padding:5px 16px; display:inline-block;
+    ">LV 1 · 🪙 0</div>
+    <div class="name-wrap">
+      <input class="name-input" id="nameInput" type="text" maxlength="20"
+        placeholder="Enter your name…" autocomplete="off" spellcheck="false"/>
+    </div>
+    <button class="play-btn" onclick="startGame()">▶ PLAY</button>
+    <div class="modes-row">
+      <button class="mode-btn selected" data-mode="ffa" onclick="selectMode(this)">
+        <span class="m-icon">⚔️</span>Free for All
+      </button>
+      <button class="mode-btn" data-mode="team" onclick="selectMode(this)">
+        <span class="m-icon">🛡️</span>Team Mode
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SHOP ═══════════════ -->
+<div id="shopScreen">
+  <div class="shop-header">
+    <div class="shop-header-title">🛍 SHOP</div>
+    <div class="shop-coin-badge">🪙 <span id="shopCoinDisplay">0</span></div>
+    <button class="shop-close" onclick="closeShop()">✕ BACK</button>
+  </div>
+  <div class="shop-tabs">
+    <button class="shop-tab active" onclick="switchTab('colors')">Colors</button>
+    <button class="shop-tab" onclick="switchTab('animated')">Animated</button>
+    <button class="shop-tab" onclick="switchTab('badges')">Badges</button>
+    <button class="shop-tab" onclick="switchTab('custom')">Custom</button>
+    <button class="shop-tab" onclick="switchTab('abilities')">Abilities</button>
+  </div>
+  <div class="shop-grid" id="shopGrid"></div>
+</div>
+
+<!-- ═══════════════ SETTINGS ═══════════════ -->
+<div id="settingsScreen">
+  <div class="settings-header">
+    <div class="settings-header-title">⚙ SETTINGS</div>
+    <button class="settings-close" onclick="closeSettings()">✕ BACK</button>
+  </div>
+  <div class="settings-body">
+
+    <div class="settings-section-label">Gameplay</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">Sound Effects</span>
+          <span class="settings-row-sub">Eating, dying, level up</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="sfxToggle" onchange="saveSetting('sfx', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">Show Leaderboard</span>
+          <span class="settings-row-sub">Top 10 during gameplay</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="lbToggle" checked onchange="saveSetting('leaderboard', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">Show XP Bar</span>
+          <span class="settings-row-sub">Progress bar below mass</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="xpToggle" checked onchange="saveSetting('xpbar', this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-section-label">PC Controls</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">🖱 Mouse</span>
+          <span class="settings-row-sub">Move your blob</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:rgba(255,255,255,0.35);letter-spacing:1px">MOVE</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">⌨ Space</span>
+          <span class="settings-row-sub">Split into two blobs</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#5dcc7a;letter-spacing:1px">SPLIT</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">⌨ M</span>
+          <span class="settings-row-sub">Merge all pieces into one</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#5bc8fa;letter-spacing:1px">MERGE</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">⌨ W</span>
+          <span class="settings-row-sub">Shoot a mass blob forward</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#ffd166;letter-spacing:1px">EJECT</span>
+      </div>
+    </div>
+
+    <div class="settings-section-label">Mobile Controls</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">👆 Right thumb</span>
+          <span class="settings-row-sub">Joystick — steer your blob</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:rgba(255,255,255,0.35);letter-spacing:1px">MOVE</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">🟢 SPLIT button</span>
+          <span class="settings-row-sub">Bottom left — tap to split</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#5dcc7a;letter-spacing:1px">SPLIT</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">🔵 MERGE button</span>
+          <span class="settings-row-sub">Above split — tap to merge</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#5bc8fa;letter-spacing:1px">MERGE</span>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">🟡 EJECT button</span>
+          <span class="settings-row-sub">Above merge — shoot mass</span>
+        </div>
+        <span style="font-family:'Orbitron',sans-serif;font-size:0.65rem;color:#ffd166;letter-spacing:1px">EJECT</span>
+      </div>
+    </div>
+
+    <div class="settings-section-label">🏅 Local High Scores (This Computer)</div>
+    <div class="settings-card" id="localScoresCard">
+      <div style="padding:14px 18px;font-size:0.75rem;color:rgba(255,255,255,0.3);text-align:center">
+        No scores yet. Play a game!
+      </div>
+    </div>
+
+    <div class="settings-section-label">Profile</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <span class="settings-row-title">Your Name</span>
+          <span class="settings-row-sub" id="settingsNameDisplay">—</span>
+        </div>
+        <button class="settings-action normal" style="width:auto;padding:8px 14px;font-size:0.75rem"
+          onclick="resetName()">RESET</button>
+      </div>
+    </div>
+
+    <div class="settings-section-label">Your Stats</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-card-val" id="statLevel">1</span>
+        <span class="stat-card-lbl">Level</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card-val" id="statCoins">0</span>
+        <span class="stat-card-lbl">Coins</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card-val" id="statBestMass">0</span>
+        <span class="stat-card-lbl">Best Mass</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card-val" id="statGames">0</span>
+        <span class="stat-card-lbl">Games Played</span>
+      </div>
+      <div class="stat-card" style="grid-column:1/-1">
+        <span class="stat-card-val" id="statWins" style="color:#ffd166">0</span>
+        <span class="stat-card-lbl">🏆 Arena Wins</span>
+      </div>
+    </div>
+
+    <div class="settings-section-label">🏅 Local High Scores (This Computer)</div>
+    <div class="settings-card" id="localScoreCard" style="padding:8px 0">
+      <div style="padding:14px 18px;color:rgba(255,255,255,0.3);font-size:0.78rem;text-align:center">
+        No scores yet — play a game!
+      </div>
+    </div>
+
+    <div class="settings-section-label">Danger Zone</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="settings-action danger" onclick="resetProgress()">
+        🗑 Reset XP, Level &amp; Coins
+      </button>
+      <button class="settings-action danger" onclick="resetEverything()">
+        ⚠️ Reset Everything (full wipe)
+      </button>
+    </div>
+
+    <!-- Credits -->
+    <div style="margin-top:8px;padding:20px 16px;text-align:center;border-top:1px solid rgba(255,255,255,0.06)">
+      <div style="font-family:'Orbitron',sans-serif;font-size:0.7rem;font-weight:700;color:#5dcc7a;letter-spacing:2px;margin-bottom:6px">THE BULB</div>
+      <div style="font-size:0.78rem;color:rgba(255,255,255,0.5);line-height:1.7">
+        Created by <span style="color:#fff;font-weight:800">Legend46644</span><br>
+        &amp; his friend <span style="color:#5dcc7a;font-weight:800">Claude AI</span>
+      </div>
+      <div style="margin-top:10px;font-size:0.62rem;color:rgba(255,255,255,0.2);letter-spacing:1px">Built with ❤️ — All stages complete</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ CHALLENGE SCREEN ═══════════════ -->
+<div id="challengeScreen">
+  <div class="challenge-header">
+    <div class="challenge-header-title">🎯 DAILY CHALLENGE</div>
+    <button class="challenge-close" onclick="closeChallenges()">✕ BACK</button>
+  </div>
+  <div class="challenge-body">
+    <div class="challenge-date-label" id="challengeDateLabel">Loading…</div>
+    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.25);margin-top:-8px;margin-bottom:4px;letter-spacing:1px" id="challengeTimer">—</div>
+    <div class="challenge-card" id="challengeCard">
+      <span class="challenge-icon" id="challengeIcon">🎯</span>
+      <div class="challenge-task" id="challengeTaskText">—</div>
+      <div class="challenge-progress-bar">
+        <div class="challenge-progress-fill" id="challengeProgressFill" style="width:0%"></div>
+      </div>
+      <div class="challenge-progress-label" id="challengeProgressLabel">0 / 0</div>
+      <div class="challenge-reward-box">
+        <span class="challenge-reward-label">🏆 Reward</span>
+        <span class="challenge-reward-val">50 🪙</span>
+      </div>
+      <div id="challengeDoneBadge" style="display:none">
+        <span class="challenge-done-badge">✅ COMPLETED TODAY!</span>
+      </div>
+    </div>
+    <div class="challenge-tip" id="challengeTipBox"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ ROOM SCREEN ═══════════════ -->
+<div id="roomScreen">
+  <div class="room-header">
+    <div class="room-header-title">🌐 ROOMS</div>
+    <button class="room-close" onclick="closeRooms()">✕ BACK</button>
+  </div>
+  <div class="room-body">
+    <!-- Create room -->
+    <div class="room-option create" onclick="showCreate()">
+      <span class="room-option-icon">➕</span>
+      <div class="room-option-title">CREATE ROOM</div>
+      <div class="room-option-sub">Start a private game and share your code</div>
+    </div>
+
+    <!-- Join room -->
+    <div class="room-option join" onclick="showJoin()">
+      <span class="room-option-icon">🔗</span>
+      <div class="room-option-title">JOIN ROOM</div>
+      <div class="room-option-sub">Enter a friend's 6-digit code</div>
+    </div>
+
+    <div id="joinPanel" style="display:none">
+      <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:10px;line-height:1.5">
+        Ask the host to <strong style="color:#5bc8fa">tap their room code</strong> to copy it, then paste it below.
+      </div>
+      <div class="room-input-wrap">
+        <input class="room-input" id="roomCodeInput" type="text"
+          maxlength="60" placeholder="Paste full room ID here"
+          autocomplete="off" spellcheck="false"
+          style="font-size:0.85rem;letter-spacing:1px;text-transform:lowercase"/>
+      </div>
+      <button class="room-btn blue" onclick="joinRoom()">JOIN GAME</button>
+      <div class="room-status" id="joinStatus"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ LOBBY SCREEN ═══════════════ -->
+<div id="lobbyScreen">
+  <div class="lobby-title">PRIVATE ROOM</div>
+  <div class="lobby-code" id="lobbyCode">——————</div>
+  <div class="lobby-code-label" id="lobbyCodeLabel">Share this code with friends</div>
+  <div class="lobby-players" id="lobbyPlayerList">
+    <div class="lobby-waiting">Waiting for players…</div>
+  </div>
+  <button class="lobby-start-btn" id="lobbyStartBtn" onclick="hostStartGame()">
+    ▶ START GAME
+  </button>
+  <button class="lobby-leave-btn" onclick="leaveRoom()">Leave room</button>
+</div>
+
+<!-- ═══════════════ VICTORY SCREEN ═══════════════ -->
+<div id="victoryScreen">
+  <div class="victory-card">
+    <span class="victory-emoji">🏆</span>
+    <div class="victory-title">YOU WIN!</div>
+    <div class="victory-sub">You dominated the arena and reached 20,000 mass.<br>You are the Bulb Champion.</div>
+    <div class="victory-wins-badge" id="victoryWinsBadge">🏆 Total Wins: 1</div>
+    <div class="victory-stats">
+      <div class="victory-stat">
+        <span class="victory-stat-val" id="victoryMass">0</span>
+        <span class="victory-stat-lbl">Final Mass</span>
+      </div>
+      <div class="victory-stat">
+        <span class="victory-stat-val" id="victoryLevel">1</span>
+        <span class="victory-stat-lbl">Level</span>
+      </div>
+      <div class="victory-stat">
+        <span class="victory-stat-val" id="victoryBots">0</span>
+        <span class="victory-stat-lbl">Bots Eaten</span>
+      </div>
+      <div class="victory-stat">
+        <span class="victory-stat-val" id="victoryCoins">0</span>
+        <span class="victory-stat-lbl">Coins Earned</span>
+      </div>
+    </div>
+    <button class="victory-btn primary" onclick="victoryPlayAgain()">▶ PLAY AGAIN</button>
+    <button class="victory-btn secondary" onclick="victoryGoMenu()">← MAIN MENU</button>
+  </div>
+</div>
+
+<!-- ═══════════════ GAME ═══════════════ -->
+<div id="gameScreen">
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="massDisplay">MASS: 0</div>
+  <div id="minimap"><canvas id="minimapCanvas" width="140" height="140"></canvas></div>
+  <div id="spectateBar">
+    👁 Spectating <strong id="spectateName">—</strong>
+    <button id="spectateStopBtn" onclick="stopSpectate()">STOP</button>
+  </div>
+  <div id="xpBar"><div id="xpFill"></div></div>
+  <div id="levelBadge">
+    <span class="lv-num" id="levelNum">LV 1</span>
+    <span class="lv-coins" id="coinNum">🪙 0</span>
+  </div>
+  <div id="leaderboard">
+    <div class="lb-title">⚔ TOP 10</div>
+    <div id="lbRows"></div>
+  </div>
+  <button id="backBtn" onclick="goToMenu()">← MENU</button>
+  <div id="joystickBase"><div id="joystickKnob"></div></div>
+  <button id="splitBtn">SPLIT</button>
+  <button id="mergeBtn">MERGE</button>
+  <button id="ejectBtn">EJECT</button>
+</div>
+
+<!-- ═══════════════ DEATH SCREEN ═══════════════ -->
+<div id="deathScreen">
+  <div class="death-card">
+    <span class="death-emoji">💀</span>
+    <div class="death-title">YOU WERE EATEN!</div>
+    <div class="death-eaten-by">Consumed by <span id="killerName">—</span></div>
+    <div class="death-stats">
+      <div class="death-stat">
+        <span class="death-stat-val" id="finalMass">0</span>
+        <span class="death-stat-lbl">Final Mass</span>
+      </div>
+      <div class="death-stat">
+        <span class="death-stat-val" id="blobsEaten">0</span>
+        <span class="death-stat-lbl">Blobs Eaten</span>
+      </div>
+    </div>
+    <div class="death-btn-row">
+      <button class="death-btn primary" onclick="startGame()">PLAY AGAIN</button>
+      <button class="death-btn secondary" onclick="goToMenu()">MENU</button>
+    </div>
+    <button class="death-btn secondary" style="margin-top:8px;width:100%" onclick="startSpectate()">
+      👁 SPECTATE KILLER
+    </button>
+    <button class="death-revive-btn" id="reviveBtn" onclick="useRevive()">
+      ⚡ REVIVE — Use Refill
+    </button>
+    <!-- Ad reward buttons -->
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button onclick="watchAdForCoins()" style="
+        flex:1;padding:11px 6px;border-radius:12px;border:1.5px solid rgba(255,209,102,0.3);
+        background:rgba(255,209,102,0.08);color:#ffd166;
+        font-family:'Orbitron',sans-serif;font-size:0.58rem;font-weight:700;
+        letter-spacing:1px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+        📺 WATCH AD<br><span style="font-size:0.55rem;opacity:0.7">+50 🪙</span>
+      </button>
+      <button onclick="watchAdForRevive()" style="
+        flex:1;padding:11px 6px;border-radius:12px;border:1.5px solid rgba(93,204,122,0.3);
+        background:rgba(93,204,122,0.08);color:#5dcc7a;
+        font-family:'Orbitron',sans-serif;font-size:0.58rem;font-weight:700;
+        letter-spacing:1px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+        📺 WATCH AD<br><span style="font-size:0.55rem;opacity:0.7">FREE REVIVE</span>
+      </button>
+    </div>
+    <div class="death-tip">
+      <span class="death-tip-label">💡 Pro Tip</span>
+      <span class="death-tip-text" id="deathTip">Try not to die next time.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ AD OVERLAY ═══════════════ -->
+<div id="adOverlay">
+  <div class="ad-card">
+    <span class="ad-label">📺 Advertisement</span>
+    <div class="ad-content" id="adContent">
+      <div class="ad-brand">THE BULB</div>
+      <div class="ad-tagline">DOMINATE THE ARENA</div>
+    </div>
+    <div class="ad-timer-row">
+      <span class="ad-timer-label">Ad finishing in</span>
+      <span class="ad-timer-count" id="adTimerCount">5</span>
+    </div>
+    <div class="ad-progress-bar">
+      <div class="ad-progress-fill" id="adProgressFill" style="width:0%"></div>
+    </div>
+    <div class="ad-reward-preview" id="adRewardText">Loading reward…</div>
+    <button class="ad-skip-btn" id="adSkipBtn" onclick="claimAdReward()">
+      CLAIM REWARD
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                     THE BULB — CODE MAP                         ║
+// ║  Use Ctrl+F (or Cmd+F) and search the section name to jump to it║
+// ╠══════════════════════════════════════════════════════════════════╣
+// ║  SECTION 1  │ CANVAS SETUP & COLOUR HELPERS                     ║
+// ║  SECTION 2  │ MENU ANIMATION                                    ║
+// ║  SECTION 3  │ DRAW BLOB                                         ║
+// ║  SECTION 4  │ MENU UI (name input, mode select)                 ║
+// ║  SECTION 5  │ GAME CONSTANTS & STATE VARIABLES                  ║
+// ║  SECTION 6  │ SPATIAL GRID (fast collision lookup)              ║
+// ║  SECTION 7  │ PARTICLES                                         ║
+// ║  SECTION 8  │ XP, LEVEL & COINS                                 ║
+// ║  SECTION 9  │ SPAWN HELPERS (food, virus, bot)                  ║
+// ║  SECTION 10 │ BOT AI (flee, hunt, forage, split-lunge)          ║
+// ║  SECTION 11 │ GAME INIT                                         ║
+// ║  SECTION 12 │ UPDATE GAME (physics, collisions)                 ║
+// ║  SECTION 13 │ RENDER GAME                                       ║
+// ║  SECTION 14 │ DEATH SCREEN & TRIGGER                            ║
+// ║  SECTION 15 │ MERGE, SPLIT & EJECT                              ║
+// ║  SECTION 16 │ GAME LOOP                                         ║
+// ║  SECTION 17 │ INPUT (mouse, joystick, keyboard)                 ║
+// ║  SECTION 18 │ SCREEN TRANSITIONS (start, menu)                  ║
+// ║  SECTION 19 │ SHOP (colours, animated, badges, abilities)       ║
+// ║  SECTION 20 │ SETTINGS (toggles, stats, reset, SFX)            ║
+// ║  SECTION 21 │ MULTIPLAYER (PeerJS rooms, lobby, sync)           ║
+// ║  SECTION 22 │ DEATH TIPS                                        ║
+// ║  SECTION 23 │ DAILY CHALLENGES                                  ║
+// ║  SECTION 24 │ CHALLENGE SCREEN                                  ║
+// ║  SECTION 25 │ TOAST                                             ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 1 │ CANVAS SETUP & COLOUR HELPERS               ██
+// ████████████████████████████████████████████████████████████
+//  HI-DPI CANVAS SETUP
+//  On retina screens, we multiply canvas pixel dimensions by the
+//  device pixel ratio so text and edges are crisp, not blurry.
+// ─────────────────────────────────────────────────────────────
+function setupHiDPICanvas(canvas) {
+  const dpr  = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return ctx;
+}
+
+const COLORS = [
+  '#5dcc7a','#5bc8fa','#ff6b9d','#ffd166',
+  '#a29bfe','#ff9f43','#00cec9','#fd79a8',
+  '#e17055','#74b9ff','#55efc4','#fdcb6e'
+];
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 2 │ MENU ANIMATION                              ██
+// ████████████████████████████████████████████████████████████
+const menuCanvas = document.getElementById('menuCanvas');
+menuCanvas.style.width = '100%'; menuCanvas.style.height = '100%';
+const mCtx = setupHiDPICanvas(menuCanvas);
+let mW = window.innerWidth, mH = window.innerHeight;
+
+window.addEventListener('resize', () => {
+  mW = window.innerWidth; mH = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  menuCanvas.width  = mW * dpr;
+  menuCanvas.height = mH * dpr;
+  mCtx.setTransform(dpr, 0, 0, dpr, 0, 0); // reset + scale, no accumulation
+});
+
+const mFoods = Array.from({ length: 130 }, () => ({
+  x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
+  r: 3.5 + Math.random() * 3, color: COLORS[Math.floor(Math.random() * COLORS.length)],
+  alpha: 0.55 + Math.random() * 0.45,
+}));
+const BLOB_NAMES_MENU = ['Zak','Mia','Rex','Sky','Lux','Dot','Kai','Neo','Ivy','Ash','Bo','Rio','Ace','Jay'];
+const mBlobs = BLOB_NAMES_MENU.map((name, i) => ({
+  name, color: COLORS[i % COLORS.length],
+  x: 80 + Math.random() * (window.innerWidth - 160),
+  y: 80 + Math.random() * (window.innerHeight - 160),
+  r: 12 + Math.random() * 36, vx: (Math.random()-0.5)*1.3, vy: (Math.random()-0.5)*1.3,
+  targetFood: null,
+}));
+
+let menuAnimating = true;
+function animateMenu() {
+  if (!menuAnimating) return;
+  mCtx.clearRect(0, 0, mW, mH);
+  mFoods.forEach(f => {
+    mCtx.globalAlpha = f.alpha * 0.65;
+    mCtx.beginPath(); mCtx.arc(f.x, f.y, f.r, 0, Math.PI*2);
+    mCtx.fillStyle = f.color; mCtx.fill();
+  });
+  mCtx.globalAlpha = 1;
+  mBlobs.forEach(blob => {
+    const spd = Math.max(0.3, 1.55 - blob.r * 0.016);
+    if (blob.targetFood === null) {
+      let best=0, bestD=Infinity;
+      mFoods.forEach((f,i) => { const d=Math.hypot(f.x-blob.x,f.y-blob.y); if(d<bestD){bestD=d;best=i;} });
+      blob.targetFood = best;
+    }
+    const tf = mFoods[blob.targetFood];
+    const dx=tf.x-blob.x, dy=tf.y-blob.y, dist=Math.hypot(dx,dy)||1;
+    if (dist < blob.r+tf.r+2) {
+      blob.r=Math.min(blob.r+0.9,82); tf.x=Math.random()*mW; tf.y=Math.random()*mH; blob.targetFood=null;
+    } else { blob.vx+=(dx/dist)*0.13; blob.vy+=(dy/dist)*0.13; }
+    const mag=Math.hypot(blob.vx,blob.vy)||1;
+    if(mag>spd){blob.vx=(blob.vx/mag)*spd;blob.vy=(blob.vy/mag)*spd;}
+    blob.x+=blob.vx; blob.y+=blob.vy;
+    if(blob.x-blob.r<0){blob.x=blob.r;blob.vx*=-1;}
+    if(blob.x+blob.r>mW){blob.x=mW-blob.r;blob.vx*=-1;}
+    if(blob.y-blob.r<0){blob.y=blob.r;blob.vy*=-1;}
+    if(blob.y+blob.r>mH){blob.y=mH-blob.r;blob.vy*=-1;}
+    drawBlob(mCtx, blob.x, blob.y, blob.r, blob.color, blob.name);
+  });
+  requestAnimationFrame(animateMenu);
+}
+animateMenu();
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 3 │ DRAW BLOB                                   ██
+// ████████████████████████████████████████████████████████████
+//  DRAW BLOB — shared helper used by both menu and game canvas
+//  Draws an ellipse (rx > ry) so the blob looks grounded/flat
+//  rather than like a floating balloon. Crisp name text on top.
+// ─────────────────────────────────────────────────────────────
+//  COLOR WITH ALPHA — works for hex AND rgb(...) AND hsl(...)
+//  Appending hex like '#5dcc7a' + '28' works, but
+//  'rgb(255,0,0)' + '28' = 'rgb(255,0,0)28' which is INVALID.
+//  This helper converts any color to rgba(r,g,b,alpha) safely.
+// ─────────────────────────────────────────────────────────────
+const _colorCanvas = document.createElement('canvas');
+_colorCanvas.width = _colorCanvas.height = 1;
+const _colorCtx = _colorCanvas.getContext('2d');
+
+function colorWithAlpha(color, alpha) {
+  // Fast path: hex colors can just have 2-char alpha appended
+  if (color && color[0] === '#' && color.length <= 7) {
+    const a = Math.round(alpha * 255).toString(16).padStart(2, '0');
+    return color + a;
+  }
+  // For rgb/hsl/any other format — parse via canvas then rebuild as rgba
+  _colorCtx.clearRect(0, 0, 1, 1);
+  _colorCtx.fillStyle = color || '#5dcc7a';
+  _colorCtx.fillRect(0, 0, 1, 1);
+  const [r, g, b] = _colorCtx.getImageData(0, 0, 1, 1).data;
+  return `rgba(${r},${g},${b},${alpha.toFixed(3)})`;
+}
+
+// ─────────────────────────────────────────────────────────────
+function drawBlob(ctx, x, y, r, color, name, glowColor, badge = '') {
+  const rx = r, ry = r * 0.88;
+  const angle = 0;
+  const gc = glowColor || color;
+
+  // Outer glow — use colorWithAlpha so rgb() colors don't crash
+  const glow = ctx.createRadialGradient(x, y, r*0.4, x, y, r*1.7);
+  glow.addColorStop(0, colorWithAlpha(gc, 0.16));
+  glow.addColorStop(1, 'transparent');
+  ctx.beginPath(); ctx.ellipse(x, y, rx*1.7, ry*1.7, angle, 0, Math.PI*2);
+  ctx.fillStyle = glow; ctx.fill();
+
+  // Main body
+  const body = ctx.createRadialGradient(x-rx*0.3, y-ry*0.3, r*0.05, x, y, r);
+  body.addColorStop(0, colorWithAlpha(color, 1.0));
+  body.addColorStop(1, colorWithAlpha(color, 0.67));
+  ctx.beginPath(); ctx.ellipse(x, y, rx, ry, angle, 0, Math.PI*2);
+  ctx.fillStyle = body; ctx.fill();
+
+  // Shine
+  ctx.beginPath(); ctx.ellipse(x-rx*0.28, y-ry*0.28, rx*0.22, ry*0.2, angle, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.32)'; ctx.fill();
+
+  // Name + badge drawn together inside the blob as one line e.g. "Legend 💀"
+  if (r > 8 && name) {
+    const fs = Math.floor(Math.min(r * 0.45, 16));
+    if (fs >= 6) {
+      const label = badge ? `${name} ${badge}` : name;
+      ctx.font = `800 ${fs}px Nunito, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillText(label, x+1, y+1);
+      ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fillText(label, x, y);
+    }
+  }
+}
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 4 │ MENU UI (name input, mode select)           ██
+// ████████████████████████████████████████████████████████████
+const nameInput = document.getElementById('nameInput');
+const savedName = localStorage.getItem('bulb_player_name');
+if (savedName) nameInput.value = savedName;
+nameInput.addEventListener('input', () => {
+  localStorage.setItem('bulb_player_name', nameInput.value.trim());
+  nameInput.classList.remove('error');
+});
+let selectedMode = localStorage.getItem('bulb_mode') || 'ffa';
+document.querySelectorAll('.mode-btn').forEach(btn =>
+  btn.classList.toggle('selected', btn.dataset.mode === selectedMode)
+);
+function selectMode(el) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMode = el.dataset.mode;
+  localStorage.setItem('bulb_mode', selectedMode);
+}
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 5 │ GAME CONSTANTS & STATE VARIABLES            ██
+// ████████████████████████████████████████████████████████████
+const WORLD_SIZE  = 9000;  // much bigger arena — player can roam freely
+const FOOD_COUNT  = 1600;  // denser food so growing feels rewarding
+const BOT_COUNT   = 25;    // more bots for a busier, more challenging arena
+const WIN_MASS    = 20000; // reach this mass to win the game
+
+// Bot names — gives them personality and lets the death screen
+// show who ate the player, which feels much more alive.
+// Realistic bot name generator — mixes cool words + numbers to look like real players
+const _namePrefixes = ['Shadow','Legend','Toxic','Ghost','Void','Pixel','Nova','Elite','Mystic','Drift','Blaze','Hyper','Cyber','Lunar','Neon','Rage','Silent','Dark','Ultra','Omega'];
+const _nameSuffixes = ['Hunter','King','God','Pro','Master','Killer','Vibes','Lord','Hero','Ghost','Slayer','Blade','Storm','Wolf','Shark','Demon','Sniper','Beast','Dragon','Fire'];
+
+function generateBotName() {
+  const p   = _namePrefixes[Math.floor(Math.random() * _namePrefixes.length)];
+  const s   = _nameSuffixes[Math.floor(Math.random() * _nameSuffixes.length)];
+  const num = Math.floor(Math.random() * 9000) + 100; // 3–4 digit number
+  return `${p}${s}${num}`; // e.g. ShadowKing4821, NeonGhost312
+}
+
+const gameCanvas = document.getElementById('gameCanvas');
+gameCanvas.style.width = '100%'; gameCanvas.style.height = '100%';
+const gCtx = gameCanvas.getContext('2d');
+let gW = window.innerWidth, gH = window.innerHeight;
+
+function resizeGameCanvas() {
+  gW = window.innerWidth; gH = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+  gameCanvas.width  = gW * dpr;
+  gameCanvas.height = gH * dpr;
+  gCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  gCtx.imageSmoothingEnabled = false; // snappier on Chromebooks
+}
+resizeGameCanvas();
+let _resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(resizeGameCanvas, 100);
+});
+
+let cam         = { x: WORLD_SIZE/2, y: WORLD_SIZE/2, scale: 1 };
+let playerPieces = [];
+let player       = null;
+let bots         = [];
+let foodPellets = [];
+let ejectedMass  = [];
+let particles    = [];
+let viruses      = []; // spiky green cells — safe for small blobs, explodes large ones
+let gameRunning = false;
+let gameRAF    = null;
+let inputDir   = { x: 0, y: 0 };
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 6 │ SPATIAL GRID (fast collision lookup)        ██
+// ████████████████████████████████████████████████████████████
+//  Instead of checking every blob vs every food item (O(n²)),
+//  we divide the world into cells and only check nearby cells.
+// ─────────────────────────────────────────────────────────────
+const GRID_CELL = 200; // world units per cell
+const GRID_COLS = Math.ceil(WORLD_SIZE / GRID_CELL);
+
+function gridKey(wx, wy) {
+  const col = Math.floor(wx / GRID_CELL);
+  const row = Math.floor(wy / GRID_CELL);
+  return row * GRID_COLS + col;
+}
+
+function buildFoodGrid() {
+  const grid = new Map();
+  foodPellets.forEach((f, i) => {
+    const k = gridKey(f.x, f.y);
+    if (!grid.has(k)) grid.set(k, []);
+    grid.get(k).push(i);
+  });
+  return grid;
+}
+
+// Returns food indices in the same cell and its 8 neighbors
+function nearbyFoodIndices(wx, wy, foodGrid) {
+  const result = [];
+  const col = Math.floor(wx / GRID_CELL);
+  const row = Math.floor(wy / GRID_CELL);
+  for (let dc = -1; dc <= 1; dc++) {
+    for (let dr = -1; dr <= 1; dr++) {
+      const c = col + dc, r = row + dr;
+      if (c < 0 || r < 0) continue;
+      const k = r * GRID_COLS + c;
+      const bucket = foodGrid.get(k);
+      if (bucket) result.push(...bucket);
+    }
+  }
+  return result;
+}
+
+// Stats tracked during a session for the death screen
+let blobsEatenCount = 0;
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 7 │ PARTICLES                                   ██
+// ████████████████████████████████████████████████████████████
+//  PARTICLES — tiny dots that burst when eating food/bots
+// ─────────────────────────────────────────────────────────────
+function spawnParticles(wx, wy, color, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.5 + Math.random() * 2.5;
+    particles.push({
+      x: wx, y: wy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: 2 + Math.random() * 2,
+      color, life: 1.0, // 1.0 = fully visible, fades to 0
+    });
+  }
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= 0.88; p.vy *= 0.88; // friction
+    p.life -= 0.04 * dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    const s = worldToScreen(p.x, p.y);
+    const sr = p.r * cam.scale;
+    if (sr < 0.5) return;
+    gCtx.globalAlpha = Math.max(0, p.life);
+    gCtx.beginPath();
+    gCtx.arc(s.x, s.y, sr, 0, Math.PI * 2);
+    gCtx.fillStyle = p.color;
+    gCtx.fill();
+  });
+  gCtx.globalAlpha = 1;
+}
+
+// ─────────────────────────────────────────────────────────────
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 8 │ XP, LEVEL & COINS                           ██
+// ████████████████████████████████████████████████████████████
+
+// ── Timed abilities ──────────────────────────────────────────
+// All abilities use absolute timestamps so they survive tab closes.
+// 0 = not active. A future timestamp = active until that time.
+const ABILITY_DURATION = 30 * 60 * 1000; // 30 minutes in ms
+
+function abilityActive(key) {
+  const expiry = parseInt(localStorage.getItem(key) || '0');
+  return Date.now() < expiry;
+}
+function abilityTimeLeft(key) {
+  const expiry = parseInt(localStorage.getItem(key) || '0');
+  const ms = expiry - Date.now();
+  if (ms <= 0) return null;
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${m}m ${s}s`;
+}
+function activateAbility(key) {
+  localStorage.setItem(key, Date.now() + ABILITY_DURATION);
+}
+let xp     = parseInt(localStorage.getItem('bulb_xp')    || '0');
+let level  = parseInt(localStorage.getItem('bulb_level') || '1');
+let coins  = parseInt(localStorage.getItem('bulb_coins') || '0');
+
+// XP needed to reach each level (index = level, value = total XP needed)
+const LEVEL_XP = [0,50,130,260,450,700,1050,1500,2100,2900,4000,
+                  5500,7500,10000,13500,18000,24000,32000,42000,55000];
+const COINS_PER_LEVEL = 50; // flat 50 coins every level — no scaling
+
+function xpForLevel(lv) {
+  return lv < LEVEL_XP.length ? LEVEL_XP[lv] : LEVEL_XP[LEVEL_XP.length-1] + (lv - LEVEL_XP.length + 1) * 8000;
+}
+
+function addXP(amount) {
+  // Double XP ability — multiplies all XP gains if active
+  const gain = abilityActive('bulb_xp_expiry') ? amount * 2 : amount;
+  xp += gain;
+  while (xp >= xpForLevel(level)) {
+    level++;
+    coins += COINS_PER_LEVEL; // always flat 50 — no multiplication by level
+    localStorage.setItem('bulb_coins', coins);
+    showToast(`🎉 LEVEL ${level}! +${COINS_PER_LEVEL} 🪙`);
+    playSFX('levelup');
+    // Track level challenge on every level-up
+    updateChallengeProgress('level', 0); // 0 = just check, don't add
+    _checkLevelChallenge();
+  }
+  localStorage.setItem('bulb_xp', xp);
+  localStorage.setItem('bulb_level', level);
+}
+
+// Check level challenge using current level as the progress value directly
+function _checkLevelChallenge() {
+  if (challengeCompleted) return;
+  const ch = getDailyChallenge();
+  if (ch.type !== 'level') return;
+  // Level is a direct value — if you're already above the goal you're done
+  if (level >= ch.goal && challengeProgress < ch.goal) {
+    challengeProgress = ch.goal;
+    localStorage.setItem('bulb_challenge_progress', challengeProgress);
+    challengeCompleted = true;
+    localStorage.setItem('bulb_challenge_done', 'true');
+    coins += 50; localStorage.setItem('bulb_coins', coins);
+    showToast('🎉 Daily Challenge complete! +50 🪙');
+  } else if (level > challengeProgress) {
+    challengeProgress = level;
+    localStorage.setItem('bulb_challenge_progress', challengeProgress);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  COORDINATE HELPERS
+// ─────────────────────────────────────────────────────────────
+function worldToScreen(wx, wy) {
+  return {
+    x: (wx - cam.x) * cam.scale + gW / 2,
+    y: (wy - cam.y) * cam.scale + gH / 2,
+  };
+}
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 9 │ SPAWN HELPERS (food, virus, bot)            ██
+// ████████████████████████████████████████████████████████████
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 9 │ SPAWN HELPERS (food, virus, bot)            ██
+// ████████████████████████████████████████████████████████████
+function spawnFood() {
+  return {
+    x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE,
+    r: 4 + Math.random() * 3,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SPAWN BOT
+//  All bots spawn small (radius 10–20) regardless of player size.
+//  They grow naturally by eating food and each other — just like
+//  the player does. Nobody ever spawns pre-grown.
+//  Speed is inversely proportional to mass: the tiniest blobs
+//  are the fastest (they can escape), the biggest are the slowest
+//  (they're powerful but lumbering). This gives smaller blobs a
+//  real fighting chance to flee rather than getting steamrolled.
+// ─────────────────────────────────────────────────────────────
+function spawnBot(index, _unused) {
+  const r = 10 + Math.random() * 10;
+  let x, y;
+  do {
+    x = 60 + Math.random() * (WORLD_SIZE - 120);
+    y = 60 + Math.random() * (WORLD_SIZE - 120);
+  } while (player && Math.hypot(x - player.x, y - player.y) < 700);
+
+  // In team mode: first half of bots = team 0 (player's team), rest = team 1 (enemies)
+  // In FFA: team = -1 (no teams, everyone is an enemy)
+  const team = (selectedMode === 'team') ? (index < BOT_COUNT / 2 ? 0 : 1) : -1;
+  const teamColor = (selectedMode === 'team')
+    ? (team === 0 ? '#5dcc7a' : '#ff6b9d')  // green = ally, pink = enemy
+    : COLORS[(index + 3) % COLORS.length];
+
+  // Last 10 bots (index 15-24) are expert tier — grow faster, more aggressive
+  const expert = index >= 15;
+
+  return {
+    name:  generateBotName(),
+    x, y, r, vx: 0, vy: 0,
+    color: teamColor,
+    team, expert,
+    mass: 0,
+    targetType: 'food', targetFood: null,
+    wanderAngle: Math.random() * Math.PI * 2,
+    wanderTimer: 0, chasing: false, chaseTimer: 0,
+  };
+}
+
+// Speed formula shared by both player and bots:
+// radius 10  → speed ~3.2  (tiny and zippy)
+// radius 50  → speed ~1.7  (medium)
+// radius 150 → speed ~0.8  (big and slow)
+// This makes escaping feel possible and growing feel like a trade-off.
+function speedForRadius(r) {
+  const base = Math.max(0.5, 3.5 - r * 0.018);
+  return abilityActive('bulb_speed_expiry') ? base * 1.15 : base;
+}
+
+function drawVirus(ctx, x, y, r, spikes) {
+  const innerR = r * 0.78; // inner radius of the spiky star shape
+  const step   = Math.PI / spikes;
+
+  // Filled spiky body
+  ctx.beginPath();
+  for (let i = 0; i < spikes * 2; i++) {
+    const rad    = i % 2 === 0 ? r : innerR;
+    const angle  = i * step - Math.PI / 2;
+    const px     = x + Math.cos(angle) * rad;
+    const py     = y + Math.sin(angle) * rad;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+
+  // Dark green fill with lighter center
+  const grad = ctx.createRadialGradient(x, y, r * 0.1, x, y, r);
+  grad.addColorStop(0, '#55efc4');
+  grad.addColorStop(1, '#00b894');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Bright green outline
+  ctx.strokeStyle = '#00ff99';
+  ctx.lineWidth   = Math.max(1, r * 0.06);
+  ctx.stroke();
+
+  // Shine dot
+  ctx.beginPath();
+  ctx.arc(x - r * 0.25, y - r * 0.25, r * 0.18, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fill();
+}
+// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+//  SPLIT CONSTANTS
+const SPLIT_MIN_R     = 22;
+const MERGE_FRAMES    = 480;
+const SPLIT_LAUNCH    = 14;
+const MAX_PIECES      = 12;
+const MAX_BLOB_RADIUS = 400;
+const VIRUS_COUNT     = 30;   // number of viruses scattered across the map
+const VIRUS_R         = 40;   // virus radius — blob must be bigger than this to explode
+// ─────────────────────────────────────────────────────────────
+
+// Spawn a single virus at a random world position
+function spawnVirus() {
+  return {
+    x: 80 + Math.random() * (WORLD_SIZE - 160),
+    y: 80 + Math.random() * (WORLD_SIZE - 160),
+    r: VIRUS_R,
+    // Each virus has a random spike count for visual variety
+    spikes: 10 + Math.floor(Math.random() * 6),
+  };
+}
+
+function initGame(name) {
+  blobsEatenCount = 0;
+  ejectedMass = [];
+  particles   = [];
+  viruses     = Array.from({ length: VIRUS_COUNT }, spawnVirus);
+  // In team mode player is always team 0 (green team).
+  // In FFA team = -1 (no teams).
+  const playerTeam  = selectedMode === 'team' ? 0 : -1;
+  const playerColor = selectedMode === 'team' ? '#5dcc7a' : getPlayerColor();
+  const startR      = abilityActive('bulb_mass_expiry') ? Math.floor(22 * 1.15) : 22;
+
+  playerPieces = [{
+    name, x: WORLD_SIZE/2, y: WORLD_SIZE/2,
+    r: startR, vx: 0, vy: 0,
+    color: playerColor, mass: 0,
+    team: playerTeam,
+    mergeTimer: 0,
+  }];
+  foodPellets = Array.from({ length: FOOD_COUNT }, spawnFood);
+  bots = Array.from({ length: BOT_COUNT }, (_, i) => spawnBot(i, 22));
+  cam.x = WORLD_SIZE/2; cam.y = WORLD_SIZE/2; cam.scale = 1;
+  inputDir = { x: 0, y: 0 };
+}
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 10 │ BOT AI (flee, hunt, forage, split-lunge)  ██
+// ████████████████████████████████████████████████████████████
+//  BOT AI — called once per frame per bot
+//
+//  Three behaviours in priority order:
+//   1. HUNT PLAYER — only if bot is bigger AND player is within
+//      DETECT_RANGE. Once chasing, the bot gives up after
+//      CHASE_TIMEOUT frames if it hasn't caught the player.
+//   2. HUNT BOT — if a smaller bot is nearby, chase and eat it.
+//      This makes the arena feel like a real ecosystem where
+//      bots compete with each other, not just with the player.
+//   3. FORAGE — default mode; find the nearest food pellet.
+// ─────────────────────────────────────────────────────────────
+const DETECT_RANGE   = 320; // world units — how far a bot can "see" the player
+const CHASE_TIMEOUT  = 180; // frames (~3 sec at 60fps) before bot gives up
+
+function updateBot(bot, botIndex, dt = 1) {
+  const spd  = speedForRadius(bot.r);
+  const GRIP = 0.14;
+  let targetX, targetY;
+
+  // Detection range scales with bot size — a large bot sees further.
+  // Minimum 320 so small bots still notice nearby threats.
+  // Without this, a bot with r=50 had a detection range smaller than the player's radius!
+  const dynDetect = Math.max(DETECT_RANGE, bot.r * 10);
+
+  const playerTotalMass = playerPieces.reduce((s, p) => s + p.mass, 0);
+  const distToPlayer    = Math.hypot(bot.x - player.x, bot.y - player.y);
+  const canEatPlayer    = bot.r > player.r * 1.1;
+  const playerCanEat    = player.r > bot.r * 1.1 ||
+                         (playerTotalMass > bot.mass * 2.5 && distToPlayer < dynDetect);
+
+  // Allies (team 0 in team mode) never flee from or hunt the player
+  const isAlly = selectedMode === 'team' && bot.team === 0;
+
+  // ── 1. FLEE from player if player is bigger and close ──
+  if (!isAlly && playerCanEat && distToPlayer < dynDetect * 1.2) {
+    const dx = bot.x - player.x, dy = bot.y - player.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    targetX = bot.x + (dx / dist) * 300;
+    targetY = bot.y + (dy / dist) * 300;
+  }
+
+  // ── 2. HUNT PLAYER (with detection range + timeout) ──
+  if (targetX === undefined && !isAlly && canEatPlayer) {
+    if (!bot.chasing && distToPlayer < dynDetect) {
+      bot.chasing = true;
+      bot.chaseTimer = 0;
+    }
+    if (bot.chasing) {
+      bot.chaseTimer++;
+      if (bot.chaseTimer > CHASE_TIMEOUT) {
+        bot.chasing = false;
+        bot.chaseTimer = 0;
+      } else {
+        targetX = player.x;
+        targetY = player.y;
+        if (distToPlayer < bot.r * 2.5 && bot.mass > playerTotalMass * 2.5) {
+          botSplit(bot);
+        }
+      }
+    }
+  } else if (!playerCanEat) {
+    bot.chasing = false;
+    bot.chaseTimer = 0;
+  }
+
+  // ── 3. HUNT ANOTHER BOT (if not chasing player) ──
+  if (targetX === undefined) {
+    let preyBot = null, preyDist = Infinity;
+    bots.forEach((other, idx) => {
+      if (idx === botIndex) return;
+      if (bot.r > other.r * 1.1) {
+        const d = Math.hypot(bot.x - other.x, bot.y - other.y);
+        if (d < dynDetect * 1.5 && d < preyDist) {
+          preyDist = d; preyBot = other;
+        }
+      }
+    });
+    if (preyBot) { targetX = preyBot.x; targetY = preyBot.y; }
+  }
+
+  // ── 4. FORAGE for food (default) ──
+  if (targetX === undefined) {
+    bot.wanderTimer++;
+    if (bot.targetFood === null || bot.wanderTimer > 30) {
+      bot.wanderTimer = 0;
+      let best = null, bestD = Infinity;
+      foodPellets.forEach((f, i) => {
+        const d = Math.hypot(f.x - bot.x, f.y - bot.y);
+        if (d < bestD) { bestD = d; best = i; }
+      });
+      bot.targetFood = best;
+    }
+    if (bot.targetFood !== null && foodPellets[bot.targetFood]) {
+      targetX = foodPellets[bot.targetFood].x;
+      targetY = foodPellets[bot.targetFood].y;
+    } else {
+      bot.wanderAngle += (Math.random() - 0.5) * 0.3;
+      targetX = bot.x + Math.cos(bot.wanderAngle) * 200;
+      targetY = bot.y + Math.sin(bot.wanderAngle) * 200;
+    }
+  }
+
+  // ── Steer toward target with velocity/grip system (same as player) ──
+  const dx = targetX - bot.x, dy = targetY - bot.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const desiredVx = (dx / dist) * spd;
+  const desiredVy = (dy / dist) * spd;
+  bot.vx += (desiredVx - bot.vx) * GRIP;
+  bot.vy += (desiredVy - bot.vy) * GRIP;
+  bot.x += bot.vx * dt;
+  bot.y += bot.vy * dt;
+
+  // Bounce off world boundaries
+  if (bot.x - bot.r < 0)                { bot.x = bot.r;               bot.vx *= -0.5; }
+  if (bot.x + bot.r > WORLD_SIZE)       { bot.x = WORLD_SIZE - bot.r;  bot.vx *= -0.5; }
+  if (bot.y - bot.r < 0)                { bot.y = bot.r;               bot.vy *= -0.5; }
+  if (bot.y + bot.r > WORLD_SIZE)       { bot.y = WORLD_SIZE - bot.r;  bot.vy *= -0.5; }
+
+  // ── Bot eats food pellets ──
+  if (bot.targetFood !== null) {
+    const f = foodPellets[bot.targetFood];
+    if (f && Math.hypot(f.x - bot.x, f.y - bot.y) < bot.r + f.r - 2) {
+      bot.r = Math.min(bot.r + 0.3, MAX_BLOB_RADIUS);
+      bot.mass = (bot.mass || 0) + (bot.expert ? 1.4 : 1); // expert bots grow 40% faster
+      foodPellets[bot.targetFood] = spawnFood(); // respawn pellet
+      bot.targetFood = null;
+    }
+  }
+}
+
+function botSplit(bot) {
+  // Bot splits only if big enough and player is close — aggressive lunge attack
+  if (bot.r < SPLIT_MIN_R * 1.5) return;
+  const newR = bot.r / Math.SQRT2;
+  const dx   = player.x - bot.x, dy = player.y - bot.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  // Original bot shrinks
+  bot.r    = newR;
+  bot.mass = Math.max(1, Math.floor(bot.mass / 2));
+  // Spawn a new bot piece flying toward the player
+  bots.push({
+    name: bot.name, color: bot.color, team: bot.team,
+    x: bot.x + (dx/dist) * newR * 1.2,
+    y: bot.y + (dy/dist) * newR * 1.2,
+    r: newR, mass: bot.mass,
+    vx: (dx/dist) * SPLIT_LAUNCH * 1.2,
+    vy: (dy/dist) * SPLIT_LAUNCH * 1.2,
+    targetType: 'food', targetFood: null,
+    wanderAngle: Math.random() * Math.PI * 2,
+    wanderTimer: 0, chasing: true, chaseTimer: 0,
+  });
+  // Cap total bots so the map doesn't get flooded
+  if (bots.length > BOT_COUNT + 8) bots.splice(BOT_COUNT, 8);
+}
+//  Now operates on playerPieces array so splitting works naturally.
+// ─────────────────────────────────────────────────────────────
+function updateGame(dt = 1) {
+  if (!playerPieces.length) return;
+  player = playerPieces.reduce((a, b) => a.r > b.r ? a : b);
+
+  // Build spatial grid once per frame — O(n) build, O(1) lookup
+  const foodGrid = buildFoodGrid();
+
+  playerPieces.forEach(piece => {
+    const spd = speedForRadius(piece.r);
+    piece.vx += (inputDir.x * spd - piece.vx) * 0.08;
+    piece.vy += (inputDir.y * spd - piece.vy) * 0.08;
+    piece.x  += piece.vx * dt;
+    piece.y  += piece.vy * dt;
+    piece.x   = Math.max(piece.r, Math.min(WORLD_SIZE - piece.r, piece.x));
+    piece.y   = Math.max(piece.r, Math.min(WORLD_SIZE - piece.r, piece.y));
+    piece.mergeTimer += dt;
+
+    // ── Piece eats food pellets — only check nearby cells ──
+    const nearby = nearbyFoodIndices(piece.x, piece.y, foodGrid);
+    for (const i of nearby) {
+      const f = foodPellets[i];
+      if (!f) continue;
+      if (Math.hypot(f.x - piece.x, f.y - piece.y) < piece.r + f.r - 2) {
+        spawnParticles(f.x, f.y, f.color, 4);
+        piece.r   += 0.35;
+        piece.mass += 1;
+        foodPellets[i] = spawnFood();
+        addXP(1);
+        updateChallengeProgress('food', 1);
+        playSFX('eat');
+      }
+    }
+
+    // ── Piece eats bots ──
+    for (let i = bots.length - 1; i >= 0; i--) {
+      const bot = bots[i];
+      if (bot._dead) continue; // already eaten this frame — prevents infinite mass glitch
+      if (selectedMode === 'team' && bot.team === piece.team) continue;
+      const d = Math.hypot(bot.x - piece.x, bot.y - piece.y);
+      if (d < piece.r - bot.r * 0.5 && piece.r > bot.r * 1.1) {
+        bot._dead = true; // flag immediately — stops other pieces eating same bot this frame
+        piece.r    += bot.r * 0.18;
+        piece.mass += Math.max(1, Math.floor(bot.r / 5));
+        blobsEatenCount++;
+        bots[i] = spawnBot(i, 22);
+        addXP(Math.max(5, Math.floor(bot.r / 2)));
+        updateChallengeProgress('bots', 1);
+        playSFX('eatbot');
+      }
+    }
+  });
+
+  // ── Pieces repel each other so they don't all sit on top ──
+  // This makes split pieces spread out naturally, like agar.io.
+  for (let i = 0; i < playerPieces.length; i++) {
+    for (let j = i + 1; j < playerPieces.length; j++) {
+      const a = playerPieces[i], b = playerPieces[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const minDist = a.r + b.r;
+      if (dist < minDist) {
+        // Push the two pieces apart gently
+        const push = (minDist - dist) / dist * 0.3;
+        a.x -= dx * push; a.y -= dy * push;
+        b.x += dx * push; b.y += dy * push;
+      }
+    }
+  }
+
+  // ── Merge pieces back together after cooldown ──
+  // When mergeTimer is ready: pieces are pulled toward each other (magnetic).
+  // They fully absorb when centers are close enough.
+  if (playerPieces.length > 1) {
+    for (let i = 0; i < playerPieces.length; i++) {
+      for (let j = i + 1; j < playerPieces.length; j++) {
+        const a = playerPieces[i], b = playerPieces[j];
+        if (a.mergeTimer < MERGE_FRAMES || b.mergeTimer < MERGE_FRAMES) continue;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d  = Math.hypot(dx, dy) || 1;
+        // Pull the two pieces toward each other like a magnet
+        const pull = 0.04;
+        a.vx += (dx / d) * pull;  a.vy += (dy / d) * pull;
+        b.vx -= (dx / d) * pull;  b.vy -= (dy / d) * pull;
+        // Absorb when close enough
+        if (d < (a.r + b.r) * 0.55) {
+          a.r    = Math.sqrt(a.r * a.r + b.r * b.r);
+          a.mass = a.mass + b.mass;
+          a.mergeTimer = 0;
+          playerPieces.splice(j, 1);
+          break;
+        }
+      }
+    }
+  }
+
+  // ── Bots eat any player piece they're big enough to consume ──
+  for (const bot of bots) {
+    // In team mode allies don't eat the player
+    if (selectedMode === 'team' && bot.team === 0) continue;
+    for (let i = playerPieces.length - 1; i >= 0; i--) {
+      const piece = playerPieces[i];
+      const d = Math.hypot(bot.x - piece.x, bot.y - piece.y);
+      if (d < bot.r - piece.r * 0.5 && bot.r > piece.r * 1.1) {
+        playerPieces.splice(i, 1);
+        if (playerPieces.length === 0) { triggerDeath(bot.name); return; }
+      }
+    }
+  }
+
+  // ── Update ejected mass blobs ──
+  for (let i = ejectedMass.length - 1; i >= 0; i--) {
+    const e = ejectedMass[i];
+    e.vx *= 0.92; e.vy *= 0.92;
+    e.x += e.vx * dt; e.y += e.vy * dt;
+    e.x = Math.max(e.r, Math.min(WORLD_SIZE - e.r, e.x));
+    e.y = Math.max(e.r, Math.min(WORLD_SIZE - e.r, e.y));
+    if (e.ownTimer > 0) e.ownTimer -= dt;
+    e.life -= dt;
+
+    // On expiry — return mass to nearest player piece so it's never just lost
+    if (e.life <= 0) {
+      const nearest = playerPieces.reduce((a, b) =>
+        Math.hypot(a.x-e.x, a.y-e.y) < Math.hypot(b.x-e.x, b.y-e.y) ? a : b, playerPieces[0]);
+      if (nearest) { nearest.mass += e.massValue || 0; }
+      ejectedMass.splice(i, 1);
+      continue;
+    }
+
+    // Player absorbs own ejected blob (after ownTimer expires)
+    if (e.ownTimer <= 0) {
+      let absorbed = false;
+      for (const piece of playerPieces) {
+        if (Math.hypot(piece.x - e.x, piece.y - e.y) < piece.r + e.r - 2) {
+          piece.mass += e.massValue || 0;
+          piece.r = Math.min(piece.r + e.r * 0.05, MAX_BLOB_RADIUS);
+          ejectedMass.splice(i, 1);
+          absorbed = true;
+          break;
+        }
+      }
+      if (absorbed) continue;
+    }
+
+    // Bots can eat ejected mass
+    let botAte = false;
+    for (let j = 0; j < bots.length; j++) {
+      const bot = bots[j];
+      if (Math.hypot(bot.x - e.x, bot.y - e.y) < bot.r + e.r - 2) {
+        bot.r = Math.min(bot.r + e.r * 0.1, MAX_BLOB_RADIUS);
+        ejectedMass.splice(i, 1);
+        botAte = true;
+        break;
+      }
+    }
+    if (botAte) continue;
+  }
+
+  // ── Update particles ──
+  updateParticles(dt);
+
+  // ── Virus collisions ──
+  // Rule: if a blob is BIGGER than the virus (r > VIRUS_R * 1.1) and touches it,
+  // it explodes into many small pieces. Smaller blobs pass through safely.
+  // After being triggered, the virus respawns elsewhere.
+  for (let vi = viruses.length - 1; vi >= 0; vi--) {
+    const v = viruses[vi];
+
+    // Check player pieces against virus
+    for (let pi = playerPieces.length - 1; pi >= 0; pi--) {
+      const piece = playerPieces[pi];
+      if (piece.r <= VIRUS_R * 1.1) continue; // too small — safe to pass through
+      const d = Math.hypot(piece.x - v.x, piece.y - v.y);
+      if (d < piece.r + v.r - 8) {
+        // EXPLODE — split the piece into many small fragments
+        const fragments = Math.min(Math.floor(piece.r / 10), MAX_PIECES - playerPieces.length + 1);
+        if (fragments > 1) {
+          const fragR    = piece.r / Math.sqrt(fragments);
+          const fragMass = Math.max(1, Math.floor(piece.mass / fragments));
+          piece.r    = fragR;
+          piece.mass = fragMass;
+          for (let f = 1; f < fragments; f++) {
+            const angle = (f / fragments) * Math.PI * 2;
+            playerPieces.push({
+              name: piece.name, color: piece.color,
+              x: piece.x + Math.cos(angle) * fragR * 1.5,
+              y: piece.y + Math.sin(angle) * fragR * 1.5,
+              r: fragR, mass: fragMass,
+              vx: Math.cos(angle) * SPLIT_LAUNCH * 0.8,
+              vy: Math.sin(angle) * SPLIT_LAUNCH * 0.8,
+              team: piece.team, mergeTimer: 0,
+            });
+            if (playerPieces.length >= MAX_PIECES) break;
+          }
+          spawnParticles(v.x, v.y, '#00ff99', 8);
+          playSFX('split');
+          updateChallengeProgress('virus', 1);
+        }
+        viruses[vi] = spawnVirus(); // respawn virus elsewhere
+        break;
+      }
+    }
+
+    // Check bots against virus — big bots explode, then respawn fresh elsewhere
+    for (let bi = 0; bi < bots.length; bi++) {
+      const bot = bots[bi];
+      if (bot.r <= VIRUS_R * 1.1) continue;
+      const d = Math.hypot(bot.x - v.x, bot.y - v.y);
+      if (d < bot.r + v.r - 8) {
+        // Bot hits virus — respawn it small (simulates explosion + scatter)
+        bots[bi] = spawnBot(bi, 22);
+        viruses[vi] = spawnVirus();
+        break;
+      }
+    }
+  }
+
+  // ── Update bots — HOST ONLY ──
+  // Clients must never run bot AI. They receive bot positions from the host.
+  // Running bots on both sides causes the "different worlds" bug.
+  if (!inRoom || isHost) {
+    bots.forEach((bot, i) => updateBot(bot, i, dt));
+
+    // ── Bot vs bot eating — allies never eat each other ──
+    for (let i = 0; i < bots.length; i++) {
+      for (let j = i + 1; j < bots.length; j++) {
+        const a = bots[i], b = bots[j];
+        if (selectedMode === 'team' && a.team === b.team) continue;
+        if (a.r > b.r * 1.1 && Math.hypot(a.x-b.x, a.y-b.y) < a.r - b.r*0.5) {
+          a.r += b.r * 0.1;
+          a.mass = (a.mass || 0) + Math.max(1, Math.floor((b.mass || 0) / 2));
+          bots[j] = spawnBot(j, 22);
+        } else if (b.r > a.r * 1.1 && Math.hypot(a.x-b.x, a.y-b.y) < b.r - a.r*0.5) {
+          b.r += a.r * 0.1;
+          b.mass = (b.mass || 0) + Math.max(1, Math.floor((a.mass || 0) / 2));
+          bots[i] = spawnBot(i, 22);
+        }
+      }
+    }
+  }
+
+  // ── Camera: follow average center of all pieces, zoom to fit ALL of them ──
+  const avgX = playerPieces.reduce((s, p) => s + p.x, 0) / playerPieces.length;
+  const avgY = playerPieces.reduce((s, p) => s + p.y, 0) / playerPieces.length;
+  cam.x += (avgX - cam.x) * 0.07;
+  cam.y += (avgY - cam.y) * 0.07;
+
+  // Measure the bounding box that contains ALL pieces (including their radius edges).
+  // This means even the furthest-flung split piece is always fully visible.
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  playerPieces.forEach(p => {
+    minX = Math.min(minX, p.x - p.r);
+    maxX = Math.max(maxX, p.x + p.r);
+    minY = Math.min(minY, p.y - p.r);
+    maxY = Math.max(maxY, p.y + p.r);
+  });
+  const spreadW = maxX - minX;
+  const spreadH = maxY - minY;
+
+  // Scale needed to fit the full spread on screen, with 35% padding around it
+  const PADDING    = 1.35;
+  const scaleToFitW = gW / (spreadW * PADDING);
+  const scaleToFitH = gH / (spreadH * PADDING);
+  const scaleToFit  = Math.min(scaleToFitW, scaleToFitH);
+
+  const maxR        = Math.max(...playerPieces.map(p => p.r));
+  const scaleBySize = 17 / maxR;
+
+  // Hard floor: never zoom out further than what shows the full map.
+  // This stops the camera going so wide you see empty void beyond the edges.
+  const mapFloorW = gW / WORLD_SIZE;
+  const mapFloorH = gH / WORLD_SIZE;
+  const MAP_MIN_SCALE = Math.max(mapFloorW, mapFloorH) * 1.05; // 5% padding inside edges
+
+  const minScale    = Math.max(MAP_MIN_SCALE, (17 / maxR) * 0.35);
+  const targetScale = Math.max(minScale, Math.min(0.95, Math.min(scaleToFit, scaleBySize)));
+  cam.scale += (targetScale - cam.scale) * 0.045;
+
+  // ── HUD updates ──
+  const totalMass = playerPieces.reduce((s, p) => s + p.mass, 0);
+  const xpCur     = xp - xpForLevel(level - 1);
+  const xpNeed    = xpForLevel(level) - xpForLevel(level - 1);
+  if (selectedMode === 'team') {
+    // Show team mass vs enemy team mass
+    const allyMass  = bots.filter(b => b.team === 0).reduce((s,b) => s + Math.floor(b.r*b.r/40), totalMass);
+    const enemyMass = bots.filter(b => b.team === 1).reduce((s,b) => s + Math.floor(b.r*b.r/40), 0);
+    _massDisplay.innerHTML = `<span style="color:#5dcc7a">🟢 ${allyMass}</span><span style="color:rgba(255,255,255,0.4);font-size:0.75rem;padding:0 6px">vs</span><span style="color:#ff6b9d">🔴 ${enemyMass}</span>`;
+  } else {
+    _massDisplay.textContent = `MASS: ${totalMass}`;
+  }
+
+  // ── Win condition check ──
+  if (totalMass >= WIN_MASS && gameRunning) triggerVictory(totalMass);
+  // Track mass challenge — high water mark (don't subtract when you shrink)
+  if (!challengeCompleted) {
+    const _ch = getDailyChallenge();
+    if (_ch.type === 'mass' && totalMass > challengeProgress) {
+      challengeProgress = totalMass;
+      localStorage.setItem('bulb_challenge_progress', challengeProgress);
+      if (challengeProgress >= _ch.goal) {
+        challengeCompleted = true;
+        localStorage.setItem('bulb_challenge_done', 'true');
+        coins += 50; localStorage.setItem('bulb_coins', coins);
+        showToast('🎉 Daily Challenge complete! +50 🪙');
+      }
+    }
+  }
+  _xpFill.style.width      = `${Math.min(100, (xpCur / xpNeed) * 100)}%`;
+  _levelNum.textContent    = `LV ${level}`;
+  _coinNum.textContent     = `🪙 ${coins}`;
+
+  // ── Leaderboard: only rebuild DOM when top-10 order/values change ──
+  const playerEntry = { name: playerPieces[0]?.name || '?', mass: Math.floor(totalMass), isMe: true };
+  const botEntries = bots.map(b => ({
+    name: b.name,
+    mass: Math.floor(b.mass || 0),
+    isMe: false,
+  }));
+  const all = [playerEntry, ...botEntries]
+    .sort((a, b) => b.mass - a.mass)
+    .slice(0, 10);
+
+  // Build a simple fingerprint string — only touch the DOM if it changed
+  const lbKey = all.map(e => e.name + e.mass + e.isMe).join('|');
+  if (lbKey !== updateGame._lbKey) {
+    updateGame._lbKey = lbKey;
+    _lbRows.innerHTML = all.map((e, i) =>
+      `<div class="lb-row${e.isMe ? ' me' : ''}">
+        <span class="lb-rank">${i + 1}</span>
+        <span class="lb-name">${e.name}</span>
+        <span class="lb-mass">${e.mass}</span>
+      </div>`
+    ).join('');
+  }
+}
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 13 │ RENDER GAME                                ██
+// ████████████████████████████████████████████████████████████
+// ─────────────────────────────────────────────────────────────
+function renderGame() {
+  gCtx.clearRect(0, 0, gW, gH);
+  gCtx.fillStyle = '#141414';
+  gCtx.fillRect(0, 0, gW, gH);
+
+  // Scrolling white grid
+  const gridSize = 36 * cam.scale;
+  const offX = ((-cam.x*cam.scale) % gridSize + gW/2 + gridSize) % gridSize;
+  const offY = ((-cam.y*cam.scale) % gridSize + gH/2 + gridSize) % gridSize;
+  gCtx.strokeStyle = 'rgba(255,255,255,0.065)'; gCtx.lineWidth = 1;
+  gCtx.beginPath();
+  for (let x=offX-gridSize; x<gW+gridSize; x+=gridSize) { gCtx.moveTo(x,0); gCtx.lineTo(x,gH); }
+  for (let y=offY-gridSize; y<gH+gridSize; y+=gridSize) { gCtx.moveTo(0,y); gCtx.lineTo(gW,y); }
+  gCtx.stroke();
+
+  // World border
+  const tl = worldToScreen(0,0), br = worldToScreen(WORLD_SIZE, WORLD_SIZE);
+  gCtx.strokeStyle = 'rgba(255,100,100,0.35)'; gCtx.lineWidth = 3;
+  gCtx.strokeRect(tl.x, tl.y, br.x-tl.x, br.y-tl.y);
+
+  // Food pellets
+  foodPellets.forEach(f => {
+    const s = worldToScreen(f.x, f.y);
+    const sr = f.r * cam.scale;
+    if (sr < 0.5) return;
+    gCtx.beginPath(); gCtx.arc(s.x, s.y, sr, 0, Math.PI*2);
+    gCtx.fillStyle = f.color; gCtx.fill();
+  });
+
+  // ── Draw viruses (behind blobs, above food) ──
+  viruses.forEach(v => {
+    const s  = worldToScreen(v.x, v.y);
+    const sr = v.r * cam.scale;
+    if (sr < 1) return;
+    drawVirus(gCtx, s.x, s.y, sr, v.spikes);
+  });
+
+  // ── Draw bots ──
+  // Sort by radius so smaller ones draw first (behind bigger ones),
+  // which is how agar.io handles overlap — bigger always on top.
+  const allBlobs = [...bots].sort((a,b) => a.r - b.r);
+  allBlobs.forEach(bot => {
+    const s = worldToScreen(bot.x, bot.y);
+    const sr = bot.r * cam.scale;
+    if (sr < 1) return;
+    drawBlob(gCtx, s.x, s.y, sr, bot.color, bot.name);
+  });
+
+  // ── Draw ejected mass blobs ──
+  ejectedMass.forEach(e => {
+    const s = worldToScreen(e.x, e.y);
+    const sr = e.r * cam.scale;
+    if (sr < 0.5) return;
+    gCtx.beginPath(); gCtx.arc(s.x, s.y, sr, 0, Math.PI*2);
+    gCtx.fillStyle = e.color; gCtx.fill();
+  });
+
+  // ── Draw particles ──
+  drawParticles();
+
+  // ── Draw player pieces (all of them, sorted small→big) ──
+  if (playerPieces.length) {
+    // Resolve badge emoji from equipped badge item
+    const badgeItem = SHOP_ITEMS.badges.find(b => b.id === shopEquipped.badges);
+    const playerBadge = badgeItem?.badge || '';
+    [...playerPieces].sort((a,b) => a.r - b.r).forEach(piece => {
+      const ps = worldToScreen(piece.x, piece.y);
+      drawBlob(gCtx, ps.x, ps.y, piece.r * cam.scale, piece.color, piece.name, null, playerBadge);
+    });
+  }
+
+  // Minimap — PC only
+  drawMinimap();
+}
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 14 │ DEATH SCREEN & TRIGGER                     ██
+// ████████████████████████████████████████████████████████████
+
+// ── SPECTATE STATE ───────────────────────────────────────────
+let _spectateTarget = null; // the bot being followed
+let _spectating     = false;
+let _spectateRAF    = null;
+
+function startSpectate() {
+  if (!_spectateTarget) {
+    // No specific killer found — follow the biggest bot instead
+    _spectateTarget = bots.reduce((a, b) => (b.r > a.r ? b : a), bots[0]);
+  }
+  if (!_spectateTarget) return;
+
+  // Hide death screen, show game canvas + spectate bar
+  document.getElementById('deathScreen').classList.remove('show');
+  document.getElementById('gameScreen').style.display = 'block';
+  document.getElementById('hud').style.display        = 'block';
+  document.getElementById('spectateBar').style.display = 'block';
+  document.getElementById('spectateName').textContent  = _spectateTarget.name;
+
+  // Hide action buttons during spectate
+  _splitBtnEl.style.display = 'none';
+  _mergeBtnEl.style.display = 'none';
+  _ejectBtnEl.style.display = 'none';
+
+  _spectating = true;
+  _spectateLoop();
+}
+
+function _spectateLoop() {
+  if (!_spectating) return;
+
+  // If target bot got eaten and respawned, find the next biggest
+  if (!_spectateTarget || _spectateTarget.r < 10) {
+    _spectateTarget = bots.reduce((a, b) => (b.r > a.r ? b : a), bots[0]);
+    if (_spectateTarget) document.getElementById('spectateName').textContent = _spectateTarget.name;
+  }
+
+  if (_spectateTarget) {
+    // Smoothly follow the killer's position
+    cam.x += (_spectateTarget.x - cam.x) * 0.07;
+    cam.y += (_spectateTarget.y - cam.y) * 0.07;
+    // Scale based on killer's size
+    const targetScale = Math.max(0.15, Math.min(0.8, 17 / _spectateTarget.r));
+    cam.scale += (targetScale - cam.scale) * 0.045;
+  }
+
+  // Use existing render but with empty playerPieces
+  renderGame();
+  _spectateRAF = requestAnimationFrame(_spectateLoop);
+}
+
+function stopSpectate() {
+  _spectating = false;
+  if (_spectateRAF) { cancelAnimationFrame(_spectateRAF); _spectateRAF = null; }
+  document.getElementById('spectateBar').style.display = 'none';
+  document.getElementById('gameScreen').style.display  = 'none';
+  document.getElementById('hud').style.display         = 'none';
+  goToMenu();
+}
+const WIN_COIN_REWARD = 300; // bonus coins for winning
+
+function triggerVictory(finalMass) {
+  if (!gameRunning) return;
+  gameRunning = false;
+  if (gameRAF) { cancelAnimationFrame(gameRAF); gameRAF = null; }
+
+  // Increment wins counter
+  const wins = (parseInt(localStorage.getItem('bulb_wins') || '0')) + 1;
+  localStorage.setItem('bulb_wins', wins);
+
+  // Award coins
+  coins += WIN_COIN_REWARD;
+  localStorage.setItem('bulb_coins', coins);
+  recordBestMass(finalMass);
+  playSFX('levelup');
+
+  // Populate victory screen
+  document.getElementById('victoryMass').textContent  = Math.floor(finalMass);
+  document.getElementById('victoryLevel').textContent = level;
+  document.getElementById('victoryBots').textContent  = blobsEatenCount;
+  document.getElementById('victoryCoins').textContent = `+${WIN_COIN_REWARD}`;
+  document.getElementById('victoryWinsBadge').textContent = `🏆 Total Wins: ${wins}`;
+
+  document.getElementById('hud').style.display          = 'none';
+  document.getElementById('leaderboard').style.display  = 'none';
+  document.getElementById('victoryScreen').style.display = 'flex';
+}
+
+function victoryPlayAgain() {
+  document.getElementById('victoryScreen').style.display = 'none';
+  startGame();
+}
+
+function victoryGoMenu() {
+  document.getElementById('victoryScreen').style.display = 'none';
+  goToMenu();
+}
+
+//  DEATH TRIGGER
+//  Stops the game loop and shows the death screen with stats.
+// ─────────────────────────────────────────────────────────────
+function triggerDeath(killerName) {
+  gameRunning = false;
+  if (gameRAF) cancelAnimationFrame(gameRAF);
+
+  // Store killer reference for spectate mode
+  _spectateTarget = bots.find(b => b.name === killerName) || null;
+
+  // Populate death screen stats
+  document.getElementById('killerName').textContent  = killerName;
+  const finalMass = playerPieces.reduce((s,p) => s + p.mass, 0);
+  document.getElementById('finalMass').textContent   = finalMass;
+  document.getElementById('blobsEaten').textContent  = blobsEatenCount;
+  document.getElementById('deathTip').textContent    = getRandomTip(killerName);
+  recordBestMass(finalMass);
+  playSFX('death');
+
+  // Show revive button if player has a refill — store last position for revival
+  const reviveBtn = document.getElementById('reviveBtn');
+  if (localStorage.getItem('bulb_revive_refill') === 'true') {
+    reviveBtn.style.display = 'block';
+    // Store the position of the biggest piece before it's gone
+    const bigPiece = playerPieces.reduce((a,b) => a.r > b.r ? a : b, playerPieces[0]);
+    if (bigPiece) {
+      reviveBtn.dataset.x = bigPiece.x;
+      reviveBtn.dataset.y = bigPiece.y;
+      reviveBtn.dataset.r = bigPiece.r;
+    }
+  } else {
+    reviveBtn.style.display = 'none';
+  }
+
+  // Hide HUD, show death overlay
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('deathScreen').classList.add('show');
+}
+
+// ─────────────────────────────────────────────────────────────
+//  GAME LOOP
+// ─────────────────────────────────────────────────────────────
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 15 │ MERGE, SPLIT & EJECT                       ██
+// ████████████████████████████████████████████████████████████
+// Force-merge ALL pieces instantly into one regardless of timer
+function doMerge() {
+  if (playerPieces.length <= 1) return;
+  // Compute true center of mass (weighted by area = r²)
+  let totalArea = 0, cx = 0, cy = 0, cvx = 0, cvy = 0, totalMass = 0;
+  playerPieces.forEach(p => {
+    const area = p.r * p.r;
+    totalArea += area;
+    cx  += p.x   * area;
+    cy  += p.y   * area;
+    cvx += p.vx  * area;
+    cvy += p.vy  * area;
+    totalMass += p.mass;
+  });
+  const base = playerPieces[0];
+  // Combined radius: sqrt of sum of all areas
+  base.r    = Math.sqrt(totalArea);
+  base.mass = Math.max(1, totalMass);
+  base.x    = cx  / totalArea;
+  base.y    = cy  / totalArea;
+  base.vx   = cvx / totalArea;
+  base.vy   = cvy / totalArea;
+  base.mergeTimer = 0;
+  playerPieces.length = 1;
+}
+
+let _lastTime = 0;
+
+function gameLoop(timestamp) {
+  if (!gameRunning) return;
+  // Delta-time: clamp to max 50ms (= 20fps floor) so physics don't explode
+  // if the tab was backgrounded. Normalise to 60fps baseline.
+  const dt = Math.min((timestamp - _lastTime) || 16.67, 50) / 16.67;
+  _lastTime = timestamp;
+  tickShopAnimations();
+  updateGame(dt);
+  renderGame();
+  if (_splitBtnEl.style.display !== 'none') {
+    const canSplit = playerPieces.some(p => p.r >= SPLIT_MIN_R);
+    _splitBtnEl.classList.toggle('cooldown', !canSplit);
+  }
+  if (_mergeBtnEl.style.display !== 'none') {
+    _mergeBtnEl.classList.toggle('active', playerPieces.length > 1);
+  }
+  gameRAF = requestAnimationFrame(gameLoop);
+}
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 17 │ INPUT (mouse, joystick, keyboard)          ██
+// ████████████████████████████████████████████████████████████
+gameCanvas.addEventListener('mousemove', e => {
+  const dx = e.clientX - gW/2, dy = e.clientY - gH/2;
+  const mag = Math.hypot(dx, dy) || 1;
+  inputDir.x = dx/mag; inputDir.y = dy/mag;
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  INPUT — Mobile joystick (fixed, bottom-right)
+// ═══════════════════════════════════════════════════════════════
+const joystickBase = document.getElementById('joystickBase');
+const joystickKnob = document.getElementById('joystickKnob');
+const KNOB_MAX = 32;
+let joyCenterX = 0, joyCenterY = 0;
+let joystickActive = false;
+let joyTouchId = null; // track WHICH finger owns the joystick
+
+function updateJoyCenter() {
+  joyCenterX = gW - 48 - 55;
+  joyCenterY = gH - 48 - 55;
+}
+
+gameCanvas.addEventListener('touchstart', e => {
+  e.preventDefault(); updateJoyCenter();
+  for (const t of e.changedTouches) {
+    // Only claim joystick for a right-side touch if nothing owns it yet
+    if (t.clientX > gW * 0.5 && !joystickActive) {
+      joystickActive = true;
+      joyTouchId = t.identifier; // remember which finger this is
+      handleJoystick(t.clientX, t.clientY);
+    }
+  }
+}, { passive: false });
+
+gameCanvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    // Only respond to the exact finger that started the joystick
+    if (t.identifier === joyTouchId && joystickActive) {
+      handleJoystick(t.clientX, t.clientY);
+    }
+  }
+}, { passive: false });
+
+gameCanvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    // Only release when the correct finger lifts
+    if (t.identifier === joyTouchId) {
+      joystickActive = false;
+      joyTouchId = null;
+      inputDir.x = 0; inputDir.y = 0;
+      joystickKnob.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+}, { passive: false });
+
+function handleJoystick(touchX, touchY) {
+  const dx = touchX - joyCenterX, dy = touchY - joyCenterY;
+  const dist = Math.hypot(dx, dy) || 1;
+  // Deadzone: ignore tiny movements under 8px — prevents micro-tremor drift
+  if (dist < 8) { inputDir.x = 0; inputDir.y = 0; joystickKnob.style.transform = 'translate(-50%, -50%)'; return; }
+  inputDir.x = dx/dist; inputDir.y = dy/dist;
+  const travel = Math.min(dist, KNOB_MAX);
+  joystickKnob.style.transform =
+    `translate(calc(-50% + ${(dx/dist)*travel}px), calc(-50% + ${(dy/dist)*travel}px))`;
+}
+
+// Cache frequently-accessed HUD elements once — querying DOM every frame is slow
+const _massDisplay = document.getElementById('massDisplay');
+const _xpFill      = document.getElementById('xpFill');
+const _levelNum    = document.getElementById('levelNum');
+const _coinNum     = document.getElementById('coinNum');
+const _lbRows      = document.getElementById('lbRows');
+const _splitBtnEl  = document.getElementById('splitBtn');
+const _mergeBtnEl  = document.getElementById('mergeBtn');
+
+const _ejectBtnEl = document.getElementById('ejectBtn');
+
+function _onSplit(e) {
+  e.preventDefault();
+  if (!gameRunning) return;
+  const now = Date.now();
+  if (now - _lastSplitTime < ACTION_COOLDOWN) return;
+  _lastSplitTime = now;
+  doSplit();
+}
+function _onMerge(e) {
+  e.preventDefault();
+  if (!gameRunning) return;
+  const now = Date.now();
+  if (now - _lastMergeTime < ACTION_COOLDOWN) return;
+  _lastMergeTime = now;
+  doMerge();
+}
+function _onEject(e) { e.preventDefault(); if (gameRunning) doEject(); }
+
+_splitBtnEl.addEventListener('touchstart', _onSplit, { passive: false });
+_splitBtnEl.addEventListener('click', _onSplit);
+_mergeBtnEl.addEventListener('touchstart', _onMerge, { passive: false });
+_mergeBtnEl.addEventListener('click', _onMerge);
+_ejectBtnEl.addEventListener('touchstart', _onEject, { passive: false });
+_ejectBtnEl.addEventListener('click', _onEject);
+
+let _lastSplitTime = 0;
+let _lastMergeTime = 0;
+const ACTION_COOLDOWN = 1000; // 1 second between each action
+
+document.addEventListener('keydown', e => {
+  if (!gameRunning) return;
+  const now = Date.now();
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (now - _lastSplitTime < ACTION_COOLDOWN) return;
+    _lastSplitTime = now;
+    doSplit();
+  }
+  if (e.code === 'KeyM') {
+    e.preventDefault();
+    if (now - _lastMergeTime < ACTION_COOLDOWN) return;
+    _lastMergeTime = now;
+    doMerge();
+  }
+  if (e.code === 'KeyW') {
+    e.preventDefault();
+    doEject();
+  }
+});
+
+// Shoot a small mass blob in the movement direction.
+// Costs 10 mass minimum. Useful for baiting enemies or feeding allies in team mode.
+function doEject() {
+  if (!playerPieces.length) return;
+  const piece = playerPieces.reduce((a, b) => a.r > b.r ? a : b);
+  if (piece.mass < 10) { showToast('❌ Not enough mass to eject!'); return; }
+
+  const dirX = inputDir.x || 1;
+  const dirY = inputDir.y || 0;
+  const EJECT_COST = 10; // exact mass cost
+  const ejectR = Math.max(16, Math.min(piece.r * 0.35, 24)); // chunky — visibly bigger than food
+
+  piece.r    = Math.max(SPLIT_MIN_R, piece.r * 0.94);
+  piece.mass = Math.max(1, piece.mass - EJECT_COST);
+
+  ejectedMass.push({
+    x:         piece.x + dirX * (piece.r + ejectR + 2),
+    y:         piece.y + dirY * (piece.r + ejectR + 2),
+    r:         ejectR,
+    vx:        dirX * 14,
+    vy:        dirY * 14,
+    color:     piece.color,
+    massValue: EJECT_COST,
+    life:      240,
+    ownTimer:  60,
+  });
+  updateChallengeProgress('eject', 1);
+  playSFX('eat');
+}
+
+function doSplit() {
+  if (!playerPieces.length) return;
+
+  // Only split pieces that are big enough AND won't push us over the cap
+  const slotsLeft = MAX_PIECES - playerPieces.length;
+  if (slotsLeft <= 0) return;
+  const toSplit = playerPieces.filter(p => p.r >= SPLIT_MIN_R).slice(0, slotsLeft);
+  if (!toSplit.length) return;
+
+  const dirX = inputDir.x || 1;
+  const dirY = inputDir.y || 0;
+  const newPieces = [];
+
+  toSplit.forEach(piece => {
+    const newR        = piece.r / Math.SQRT2;
+    const originalMass = piece.mass;
+    piece.r    = newR;
+    piece.mass = Math.max(1, Math.floor(originalMass / 2)); // original piece keeps half
+
+    newPieces.push({
+      name:  piece.name,
+      x:     piece.x + dirX * (newR * 1.2),
+      y:     piece.y + dirY * (newR * 1.2),
+      r:     newR,
+      vx:    piece.vx + dirX * SPLIT_LAUNCH,
+      vy:    piece.vy + dirY * SPLIT_LAUNCH,
+      color: piece.color,
+      mass:  Math.max(1, originalMass - piece.mass), // new piece gets the other half
+      mergeTimer: 0,
+    });
+  });
+
+  playerPieces.push(...newPieces);
+  updateChallengeProgress('splits', 1);
+  playSFX('split');
+}
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 18 │ SCREEN TRANSITIONS (start, menu)           ██
+// ████████████████████████████████████████████████████████████
+function startGame() {
+  const name = nameInput.value.trim();
+  if (!name) { nameInput.classList.add('error'); nameInput.focus(); showToast('⚠️ Enter your name to play!'); return; }
+  localStorage.setItem('bulb_player_name', name);
+
+  // Resume audio context — browsers block audio until a user gesture
+  if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+
+  // Hide all other screens
+  document.getElementById('menuScreen').style.display  = 'none';
+  document.getElementById('deathScreen').classList.remove('show');
+  document.getElementById('gameScreen').style.display  = 'block';
+  document.getElementById('hud').style.display         = 'block';
+
+  const isTouch = 'ontouchstart' in window;
+  joystickBase.style.display   = isTouch ? 'block' : 'none';
+  _splitBtnEl.style.display    = isTouch ? 'flex'  : 'none';
+  _mergeBtnEl.style.display    = isTouch ? 'flex'  : 'none';
+  _ejectBtnEl.style.display    = isTouch ? 'flex'  : 'none';
+  _minimapEl.style.display     = isTouch ? 'none'  : 'block';
+
+  menuAnimating = false;
+  initGame(name);
+  recordGameStart();
+  // Check level challenge immediately — player may already be above the goal
+  _checkLevelChallenge();
+  updateJoyCenter();
+  gameRunning = true;
+  document.getElementById('leaderboard').style.display = showLB ? 'block' : 'none';
+  document.getElementById('xpBar').style.display = showXPBar ? 'block' : 'none';
+  gameLoop();
+}
+
+function goToMenu() {
+  gameRunning = false;
+  if (gameRAF) cancelAnimationFrame(gameRAF);
+  document.getElementById('leaderboard').style.display = 'none';
+  document.getElementById('gameScreen').style.display  = 'none';
+  document.getElementById('hud').style.display         = 'none';
+  document.getElementById('minimap').style.display     = 'none';
+  document.getElementById('deathScreen').classList.remove('show');
+  document.getElementById('menuScreen').style.display  = 'flex';
+  // Refresh level + coins badge on menu
+  const badge = document.getElementById('menuLevelBadge');
+  if (badge) badge.textContent = `LV ${level} · 🪙 ${coins}`;
+  menuAnimating = true;
+  animateMenu();
+}
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 19 │ SHOP (colours, animated, badges, abilities)██
+// ████████████████████████████████████████████████████████████
+
+// Shop catalogue — three tabs: solid colors, animated, badges
+const SHOP_ITEMS = {
+  colors: [
+    // Free starter
+    { id: 'col_green',    name: 'Slime',      price: 0,   color: '#5dcc7a' },
+    // Standard colors — 100 coins each
+    { id: 'col_blue',     name: 'Ocean',       price: 100, color: '#5bc8fa' },
+    { id: 'col_pink',     name: 'Blossom',     price: 100, color: '#ff6b9d' },
+    { id: 'col_yellow',   name: 'Sunny',       price: 100, color: '#ffd166' },
+    { id: 'col_purple',   name: 'Nebula',      price: 100, color: '#a29bfe' },
+    { id: 'col_orange',   name: 'Ember',       price: 100, color: '#ff9f43' },
+    { id: 'col_teal',     name: 'Aqua',        price: 100, color: '#00cec9' },
+    { id: 'col_red',      name: 'Lava',        price: 100, color: '#e17055' },
+    { id: 'col_white',    name: 'Ghost',       price: 100, color: '#dfe6e9' },
+    { id: 'col_black',    name: 'Shadow',      price: 100, color: '#2d3436' },
+    { id: 'col_lime',     name: 'Acid',        price: 100, color: '#badc58' },
+    { id: 'col_cyan',     name: 'Neon',        price: 100, color: '#00ffff' },
+    { id: 'col_magenta',  name: 'Magenta',     price: 100, color: '#ff00ff' },
+    { id: 'col_coral',    name: 'Coral',       price: 100, color: '#ff7675' },
+    { id: 'col_mint',     name: 'Mint',        price: 100, color: '#55efc4' },
+    { id: 'col_lavender', name: 'Lavender',    price: 100, color: '#d6a2e8' },
+    { id: 'col_brown',    name: 'Mud',         price: 100, color: '#a0785a' },
+    { id: 'col_navy',     name: 'Deep Sea',    price: 100, color: '#2c3e7a' },
+    { id: 'col_crimson',  name: 'Crimson',     price: 100, color: '#c0392b' },
+    { id: 'col_olive',    name: 'Olive',       price: 100, color: '#6d7a2c' },
+    // Design colors — metallic/textured feel, 200 coins
+    { id: 'col_gold_m',   name: '✦ Gold',      price: 200, color: '#f9ca24', metallic: true },
+    { id: 'col_silver',   name: '✦ Silver',    price: 200, color: '#b2bec3', metallic: true },
+    { id: 'col_bronze',   name: '✦ Bronze',    price: 200, color: '#cd7f32', metallic: true },
+    { id: 'col_chrome',   name: '✦ Chrome',    price: 200, color: '#a8c0ce', metallic: true },
+    { id: 'col_rose_g',   name: '✦ Rose Gold', price: 200, color: '#e8b4b8', metallic: true },
+    { id: 'col_galaxy',   name: '✦ Galaxy',    price: 200, color: '#6c3483', metallic: true },
+    { id: 'col_toxic',    name: '✦ Toxic',     price: 200, color: '#39ff14', metallic: true },
+    { id: 'col_plasma',   name: '✦ Plasma',    price: 200, color: '#e040fb', metallic: true },
+  ],
+  animated: [
+    { id: 'ani_rainbow',  name: 'Rainbow',     price: 300, anim: 'rainbow',  emoji: '🌈' },
+    { id: 'ani_fire',     name: 'Fire',        price: 400, anim: 'fire',     emoji: '🔥' },
+    { id: 'ani_ice',      name: 'Ice',         price: 400, anim: 'ice',      emoji: '❄️' },
+    { id: 'ani_gold',     name: 'Gold Shine',  price: 500, anim: 'gold',     emoji: '✨' },
+    { id: 'ani_ocean',    name: 'Ocean Wave',  price: 450, anim: 'ocean',    emoji: '🌊' },
+    { id: 'ani_blood',    name: 'Blood',       price: 450, anim: 'blood',    emoji: '🩸' },
+    { id: 'ani_toxic',    name: 'Toxic',       price: 500, anim: 'toxic',    emoji: '☢️' },
+    { id: 'ani_electric', name: 'Electric',    price: 550, anim: 'electric', emoji: '⚡' },
+    { id: 'ani_sunset',   name: 'Sunset',      price: 400, anim: 'sunset',   emoji: '🌅' },
+    { id: 'ani_void',     name: 'Void',        price: 600, anim: 'void',     emoji: '🌑' },
+  ],
+  badges: [
+    { id: 'bdg_none',     name: 'None',        price: 0,   badge: ''    },
+    { id: 'bdg_star',     name: 'Star',        price: 100, badge: '⭐'  },
+    { id: 'bdg_crown',    name: 'Crown',       price: 200, badge: '👑'  },
+    { id: 'bdg_skull',    name: 'Skull',       price: 150, badge: '💀'  },
+    { id: 'bdg_fire',     name: 'Flame',       price: 180, badge: '🔥'  },
+    { id: 'bdg_zap',      name: 'Zap',         price: 220, badge: '⚡'  },
+    { id: 'bdg_alien',    name: 'Alien',       price: 150, badge: '👽'  },
+    { id: 'bdg_devil',    name: 'Devil',       price: 200, badge: '😈'  },
+    { id: 'bdg_robot',    name: 'Robot',       price: 180, badge: '🤖'  },
+    { id: 'bdg_ghost',    name: 'Ghost',       price: 150, badge: '👻'  },
+    { id: 'bdg_dragon',   name: 'Dragon',      price: 250, badge: '🐉'  },
+    { id: 'bdg_sword',    name: 'Sword',       price: 200, badge: '⚔️'  },
+    { id: 'bdg_gem',      name: 'Gem',         price: 220, badge: '💎'  },
+    { id: 'bdg_toxic',    name: 'Toxic',       price: 200, badge: '☢️'  },
+    { id: 'bdg_100',      name: '100',         price: 120, badge: '💯'  },
+    { id: 'bdg_target',   name: 'Target',      price: 160, badge: '🎯'  },
+  ],
+};
+
+// Safe localStorage read — never crashes on corrupt JSON
+function lsGet(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch(e) { console.warn('localStorage corrupt for', key); return fallback; }
+}
+
+// Persisted shop state
+let shopOwned    = lsGet('bulb_owned',    ['col_green','bdg_none']);
+let shopEquipped = lsGet('bulb_equipped', {colors:'col_green', animated:null, badges:'bdg_none'});
+let currentTab   = 'colors';
+
+// Animated skin frame counter for pulsing effects
+let animFrame = 0;
+
+function saveShop() {
+  localStorage.setItem('bulb_owned',    JSON.stringify(shopOwned));
+  localStorage.setItem('bulb_equipped', JSON.stringify(shopEquipped));
+}
+
+// Returns the CSS color string for the currently equipped skin
+function getPlayerColor() {
+  if (shopEquipped.animated) {
+    const item = SHOP_ITEMS.animated.find(i => i.id === shopEquipped.animated);
+    if (item) {
+      if (item.anim === 'rainbow')  return _rainbowColor();
+      if (item.anim === 'fire')     return _fireColor();
+      if (item.anim === 'ice')      return _iceColor();
+      if (item.anim === 'gold')     return `hsl(${45+Math.sin(animFrame*0.05)*10},90%,${55+Math.sin(animFrame*0.07)*8}%)`;
+      if (item.anim === 'ocean')    return _oceanColor();
+      if (item.anim === 'blood')    return _bloodColor();
+      if (item.anim === 'toxic')    return _toxicColor();
+      if (item.anim === 'electric') return _electricColor();
+      if (item.anim === 'sunset')   return _sunsetColor();
+      if (item.anim === 'void')     return _voidColor();
+    }
+  }
+  if (shopEquipped.custom) return shopEquipped.custom;
+  const col = SHOP_ITEMS.colors.find(i => i.id === shopEquipped.colors);
+  return col?.color || '#5dcc7a';
+}
+
+function _rainbowColor()   { return `hsl(${(animFrame*2)%360},85%,60%)`; }
+function _fireColor()      { const t=(Math.sin(animFrame*0.08)+1)/2; return `rgb(255,${Math.floor(t*120)},0)`; }
+function _iceColor()       { const t=(Math.sin(animFrame*0.06)+1)/2; return `rgb(100,200,${Math.floor(200+t*55)})`; }
+function _oceanColor()     { const t=(Math.sin(animFrame*0.05)+1)/2; return `rgb(${Math.floor(20+t*30)},${Math.floor(120+t*80)},${Math.floor(180+t*60)})`; }
+function _bloodColor()     { const t=(Math.sin(animFrame*0.07)+1)/2; return `rgb(${Math.floor(160+t*60)},${Math.floor(t*20)},${Math.floor(t*20)})`; }
+function _toxicColor()     { const t=(Math.sin(animFrame*0.09)+1)/2; return `rgb(${Math.floor(t*60)},${Math.floor(180+t*75)},0)`; }
+function _electricColor()  { return (Math.floor(animFrame/4)%2===0) ? '#e0f7fa' : '#00e5ff'; }
+function _sunsetColor()    { const t=(animFrame%180)/180; return `hsl(${Math.floor(10+t*40)},90%,${Math.floor(50+t*15)}%)`; }
+function _voidColor()      { const t=(Math.sin(animFrame*0.04)+1)/2; return `rgb(${Math.floor(t*40)},0,${Math.floor(t*80)})`; }
+
+function buyAbility(type) {
+  const costs = { speed: 300, mass: 300, xp: 500 };
+  const keys  = { speed: 'bulb_speed_expiry', mass: 'bulb_mass_expiry', xp: 'bulb_xp_expiry' };
+  const names = { speed: '⚡ Speed Boost', mass: '💪 Mass Boost', xp: '⭐ Double XP' };
+  const cost  = costs[type];
+  const key   = keys[type];
+
+  if (abilityActive(key)) { showToast(`${names[type]} is already active!`); return; }
+  if (coins < cost) { showToast(`❌ Need ${cost} 🪙!`); return; }
+
+  coins -= cost;
+  localStorage.setItem('bulb_coins', coins);
+  activateAbility(key);
+  renderShopTab('abilities');
+  document.getElementById('shopCoinDisplay').textContent = coins;
+  showToast(`${names[type]} activated for 30 minutes!`);
+}
+
+function buyReviveRefill() {
+  const unlocked = localStorage.getItem('bulb_revive_unlocked') === 'true';
+  const hasRefill = localStorage.getItem('bulb_revive_refill') === 'true';
+
+  if (!unlocked) {
+    // Step 1 — buy the permanent unlock
+    if (coins < 500) { showToast('❌ Need 500 🪙 to unlock Revive!'); return; }
+    coins -= 500;
+    localStorage.setItem('bulb_coins', coins);
+    localStorage.setItem('bulb_revive_unlocked', 'true');
+    renderShopTab('abilities');
+    document.getElementById('shopCoinDisplay').textContent = coins;
+    showToast('⚡ Revive unlocked! Now buy a refill for 50 🪙 to use it.');
+    return;
+  }
+
+  if (hasRefill) {
+    showToast('⚡ You already have a revive charged!'); return;
+  }
+
+  // Step 2 — buy a consumable refill
+  if (coins < 50) { showToast('❌ Need 50 🪙 to refill Revive!'); return; }
+  coins -= 50;
+  localStorage.setItem('bulb_coins', coins);
+  localStorage.setItem('bulb_revive_refill', 'true');
+  renderShopTab('abilities');
+  document.getElementById('shopCoinDisplay').textContent = coins;
+  showToast('⚡ Revive charged! It activates on your next death.');
+}
+
+function useRevive() {
+  if (localStorage.getItem('bulb_revive_refill') !== 'true') {
+    showToast('❌ No revive available! Buy one in the Shop → Abilities.');
+    return;
+  }
+  // Consume the revive
+  localStorage.removeItem('bulb_revive_refill');
+  document.getElementById('reviveBtn').style.display = 'none';
+
+  // Come back with half mass at spawn point near where you died
+  const savedX = parseFloat(document.getElementById('reviveBtn').dataset.x) || WORLD_SIZE/2;
+  const savedY = parseFloat(document.getElementById('reviveBtn').dataset.y) || WORLD_SIZE/2;
+  const savedR = Math.max(SPLIT_MIN_R, parseFloat(document.getElementById('reviveBtn').dataset.r) * 0.5 || SPLIT_MIN_R);
+
+  document.getElementById('deathScreen').classList.remove('show');
+  document.getElementById('gameScreen').style.display  = 'block';
+  document.getElementById('hud').style.display         = 'block';
+
+  const name = localStorage.getItem('bulb_player_name') || 'Player';
+  playerPieces = [{
+    name, x: savedX, y: savedY,
+    r: savedR, vx: 0, vy: 0,
+    color: getPlayerColor(), mass: Math.floor(savedR * savedR / 40),
+    team: selectedMode === 'team' ? 0 : -1, mergeTimer: 0,
+  }];
+  gameRunning = true;
+  document.getElementById('leaderboard').style.display = showLB ? 'block' : 'none';
+  document.getElementById('xpBar').style.display = showXPBar ? 'block' : 'none';
+  gameLoop();
+  showToast('⚡ Revived! You came back with half your mass.');
+}
+
+function buyCustomPicker() {
+  if (coins < 500) { showToast('❌ Need 500 🪙 to unlock Custom Color!'); return; }
+  coins -= 500;
+  localStorage.setItem('bulb_coins', coins);
+  shopOwned.push('custom_picker');
+  saveShop();
+  showToast('🎨 Custom Color unlocked!');
+  renderShopTab('custom');
+}
+
+function previewCustom(val) {
+  const p = document.getElementById('customPreview');
+  if (p) p.style.background = val;
+}
+
+function applyCustomColor(val) {
+  shopEquipped.custom   = val;
+  shopEquipped.animated = null; // turn off animated when using custom
+  shopEquipped.colors   = null;
+  saveShop();
+  playerPieces.forEach(p => p.color = val);
+  showToast('✅ Custom color equipped!');
+  renderShopTab('custom');
+}
+
+// Open/close shop
+function openShop() {
+  document.getElementById('shopScreen').style.display = 'flex';
+  document.getElementById('shopCoinDisplay').textContent = coins;
+  renderShopTab(currentTab);
+}
+function closeShop() {
+  document.getElementById('shopScreen').style.display = 'none';
+}
+
+// Switch between tabs
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.shop-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', ['colors','animated','badges','custom','abilities'][i] === tab);
+  });
+  renderShopTab(tab);
+}
+
+function renderShopTab(tab) {
+  const grid   = document.getElementById('shopGrid');
+  const coinEl = document.getElementById('shopCoinDisplay');
+  coinEl.textContent = coins;
+
+  if (tab === 'abilities') {
+    const unlocked  = localStorage.getItem('bulb_revive_unlocked') === 'true';
+    const hasRefill = localStorage.getItem('bulb_revive_refill')   === 'true';
+    const speedActive = abilityActive('bulb_speed_expiry');
+    const massActive  = abilityActive('bulb_mass_expiry');
+    const xpActive    = abilityActive('bulb_xp_expiry');
+    const speedLeft   = abilityTimeLeft('bulb_speed_expiry');
+    const massLeft    = abilityTimeLeft('bulb_mass_expiry');
+    const xpLeft      = abilityTimeLeft('bulb_xp_expiry');
+
+    function abilityCard(icon, name, desc, cost, active, timeLeft, buyFn, color) {
+      return `<div style="background:rgba(255,255,255,0.04);border:2px solid ${active ? color : 'rgba(255,255,255,0.08)'};
+        border-radius:18px;padding:18px 16px;text-align:center;grid-column:1/-1">
+        <div style="font-size:2rem;margin-bottom:8px">${icon}</div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:0.8rem;font-weight:700;
+          color:#fff;letter-spacing:2px;margin-bottom:6px">${name}</div>
+        <div style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin-bottom:12px;line-height:1.5">${desc}</div>
+        ${active
+          ? `<div style="background:rgba(${color==='#5dcc7a'?'93,204,122':'255,209,102'},0.12);border-radius:10px;
+              padding:8px 12px;font-family:'Orbitron',sans-serif;font-size:0.7rem;color:${color};font-weight:700">
+              ⏱ ${timeLeft} remaining
+             </div>`
+          : `<button onclick="${buyFn}"
+              style="width:100%;padding:12px;border-radius:12px;border:none;
+              background:${coins>=cost?color:'rgba(255,255,255,0.06)'};
+              color:${coins>=cost?'#0a1f10':'rgba(255,255,255,0.3)'};
+              font-family:'Orbitron',sans-serif;font-size:0.75rem;font-weight:700;
+              letter-spacing:1px;cursor:pointer">
+              🪙 ${cost} — ACTIVATE (30 min)
+            </button>`
+        }
+      </div>`;
+    }
+
+    grid.innerHTML = `
+      ${abilityCard('⚡','SPEED BOOST','Move 15% faster for 30 minutes.',300,speedActive,speedLeft,'buyAbility(\'speed\')',  '#5bc8fa')}
+      ${abilityCard('💪','MASS BOOST', 'Spawn 15% bigger for 30 minutes.',300,massActive, massLeft, 'buyAbility(\'mass\')',   '#ff9f43')}
+      ${abilityCard('⭐','DOUBLE XP',  'Earn 2× XP for 30 minutes.',       500,xpActive,  xpLeft,   'buyAbility(\'xp\')',     '#ffd166')}
+
+      <div style="grid-column:1/-1;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px">
+        <div style="background:rgba(93,204,122,0.07);border:2px solid rgba(93,204,122,0.25);
+          border-radius:18px;padding:18px 16px;text-align:center">
+          <div style="font-size:2rem;margin-bottom:8px">⚡</div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:0.8rem;font-weight:700;
+            color:#fff;letter-spacing:2px;margin-bottom:6px">REVIVE</div>
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin-bottom:14px;line-height:1.5">
+            Come back from death with half your mass.<br>
+            <strong style="color:#ffd166">Step 1:</strong> Unlock 500 🪙 &nbsp;·&nbsp; <strong style="color:#ffd166">Step 2:</strong> Refill 50 🪙
+          </div>
+          <div style="display:flex;gap:10px">
+            ${!unlocked
+              ? `<button onclick="buyReviveRefill()" style="flex:1;padding:10px;border-radius:10px;border:none;
+                  background:${coins>=500?'#ffd166':'rgba(255,255,255,0.06)'};
+                  color:${coins>=500?'#1a1000':'rgba(255,255,255,0.3)'};
+                  font-family:'Orbitron',sans-serif;font-size:0.7rem;font-weight:700;cursor:pointer">
+                  🪙 500 UNLOCK
+                </button>`
+              : `<div style="flex:1;text-align:center;font-size:0.7rem;color:#5dcc7a;font-weight:700;padding:10px">✅ UNLOCKED</div>`
+            }
+            ${unlocked && !hasRefill
+              ? `<button onclick="buyReviveRefill()" style="flex:1;padding:10px;border-radius:10px;border:none;
+                  background:${coins>=50?'#5dcc7a':'rgba(255,255,255,0.06)'};
+                  color:${coins>=50?'#0a1f10':'rgba(255,255,255,0.3)'};
+                  font-family:'Orbitron',sans-serif;font-size:0.7rem;font-weight:700;cursor:pointer">
+                  🪙 50 REFILL
+                </button>`
+              : unlocked && hasRefill
+                ? `<div style="flex:1;text-align:center;font-size:0.7rem;color:#5dcc7a;font-weight:700;padding:10px">⚡ CHARGED</div>`
+                : `<div style="flex:1;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.2);padding:10px">Unlock first</div>`
+            }
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Custom color picker tab
+  if (tab === 'custom') {
+    const owned   = shopOwned.includes('custom_picker');
+    const current = shopEquipped.custom || '#5dcc7a';
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;padding:8px 4px">
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.5);margin-bottom:14px;line-height:1.5">
+          Pick any color you want for your blob.<br>
+          <span style="color:#ffd166">Costs 500 🪙 to unlock once.</span>
+        </div>
+        ${owned ? `
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+            <div id="customPreview" style="width:56px;height:56px;border-radius:50%;background:${current};border:2px solid rgba(255,255,255,0.2);flex-shrink:0"></div>
+            <div>
+              <div style="color:#fff;font-weight:800;font-size:0.85rem">Your Color</div>
+              <div style="color:rgba(255,255,255,0.4);font-size:0.72rem;margin-top:2px">${current}</div>
+            </div>
+          </div>
+          <input type="color" id="customColorInput" value="${current}"
+            style="width:100%;height:48px;border:none;border-radius:12px;cursor:pointer;background:none"
+            oninput="previewCustom(this.value)" onchange="applyCustomColor(this.value)">
+          <button onclick="applyCustomColor(document.getElementById('customColorInput').value)"
+            style="margin-top:12px;width:100%;padding:14px;border-radius:14px;border:none;
+            background:#5dcc7a;color:#0a1f10;font-family:'Orbitron',sans-serif;
+            font-size:0.85rem;font-weight:700;letter-spacing:2px;cursor:pointer">
+            EQUIP THIS COLOR
+          </button>
+        ` : `
+          <div style="text-align:center;padding:20px 0">
+            <div style="font-size:3rem;margin-bottom:12px">🎨</div>
+            <div style="color:#fff;font-weight:800;font-size:0.95rem;margin-bottom:6px">Custom Color Picker</div>
+            <div style="color:rgba(255,255,255,0.4);font-size:0.78rem;margin-bottom:20px">Unlock once, use any color forever</div>
+            <button onclick="buyCustomPicker()"
+              style="padding:14px 28px;border-radius:14px;border:none;
+              background:${coins>=500?'#5dcc7a':'rgba(255,255,255,0.08)'};
+              color:${coins>=500?'#0a1f10':'rgba(255,255,255,0.4)'};
+              font-family:'Orbitron',sans-serif;font-size:0.85rem;font-weight:700;
+              letter-spacing:2px;cursor:pointer">
+              🪙 500 — UNLOCK
+            </button>
+          </div>
+        `}
+      </div>`;
+    return;
+  }
+
+  const items = SHOP_ITEMS[tab];
+  grid.innerHTML = items.map(item => {
+    const owned     = shopOwned.includes(item.id);
+    const equipped  = shopEquipped[tab] === item.id;
+    const canAfford = coins >= item.price;
+
+    let previewStyle = '', previewContent = '';
+    if (item.color) {
+      previewStyle = `background:${item.color};`;
+    } else if (item.anim === 'rainbow') {
+      previewStyle = 'background:linear-gradient(135deg,#ff6b9d,#ffd166,#5dcc7a,#5bc8fa,#a29bfe);';
+    } else if (item.anim === 'fire') {
+      previewStyle = 'background:linear-gradient(180deg,#ffd166,#ff9f43,#e17055);';
+    } else if (item.anim === 'ice') {
+      previewStyle = 'background:linear-gradient(180deg,#dfe6e9,#5bc8fa,#a29bfe);';
+    } else if (item.anim === 'gold') {
+      previewStyle = 'background:linear-gradient(135deg,#ffd166,#fdcb6e,#fff3cd);';
+    } else if (item.anim === 'ocean') {
+      previewStyle = 'background:linear-gradient(180deg,#0984e3,#00cec9,#55efc4);';
+    } else if (item.anim === 'blood') {
+      previewStyle = 'background:linear-gradient(180deg,#c0392b,#922b21);';
+    } else if (item.anim === 'toxic') {
+      previewStyle = 'background:linear-gradient(135deg,#badc58,#6ab04c);';
+    } else if (item.anim === 'electric') {
+      previewStyle = 'background:linear-gradient(135deg,#00e5ff,#e0f7fa);';
+    } else if (item.anim === 'sunset') {
+      previewStyle = 'background:linear-gradient(135deg,#e17055,#ffd166,#fd79a8);';
+    } else if (item.anim === 'void') {
+      previewStyle = 'background:linear-gradient(135deg,#2d3436,#6c3483);';
+    }
+    if (item.emoji) previewContent = item.emoji;
+    if (item.badge) previewContent = item.badge;
+
+    const badgeHtml = equipped ? '<span class="shop-item-badge equipped">ON</span>'
+                    : owned    ? '<span class="shop-item-badge owned">OWNED</span>'
+                    : '';
+
+    const priceLabel = item.price === 0  ? '<span class="shop-item-price free">FREE</span>'
+                     : owned             ? '<span class="shop-item-price free">✓ OWNED</span>'
+                     : canAfford         ? `<span class="shop-item-price">🪙 ${item.price}</span>`
+                     : `<span class="shop-item-price" style="color:rgba(255,92,92,0.8)">🪙 ${item.price}</span>`;
+
+    return `<div class="shop-item${owned?' owned':''}${equipped?' active':''}"
+              onclick="shopTap('${tab}','${item.id}',${item.price})">
+      ${badgeHtml}
+      <div class="shop-item-preview" style="${previewStyle}">${previewContent}</div>
+      <div class="shop-item-name">${item.name}</div>
+      ${priceLabel}
+    </div>`;
+  }).join('');
+}
+
+// Handle tapping a shop item
+function shopTap(tab, id, price) {
+  const owned = shopOwned.includes(id);
+
+  if (!owned) {
+    if (coins < price) { showToast('❌ Not enough coins!'); return; }
+    coins -= price;
+    localStorage.setItem('bulb_coins', coins);
+    shopOwned.push(id);
+  }
+
+  // Equip based on tab
+  if (tab === 'colors') {
+    shopEquipped.colors   = id;
+    shopEquipped.animated = null; // turn off animated
+    shopEquipped.custom   = null; // CLEAR custom so solid color actually shows
+  } else if (tab === 'animated') {
+    shopEquipped.animated = id;
+    shopEquipped.custom   = null; // clear custom
+  } else {
+    shopEquipped[tab] = id;
+  }
+
+  saveShop();
+
+  // ── Apply color change immediately to any running game ──
+  // Without this, players have to die and restart to see their new skin.
+  if (gameRunning && playerPieces.length) {
+    const newColor = getPlayerColor();
+    playerPieces.forEach(p => p.color = newColor);
+  }
+
+  renderShopTab(tab);
+  document.getElementById('shopCoinDisplay').textContent = coins;
+  const itemName = id.split('_').slice(1).join(' ');
+  showToast(`✅ ${itemName.charAt(0).toUpperCase() + itemName.slice(1)} equipped!`);
+}
+
+// Increment animFrame each game loop tick for animated skins
+// and update player piece colors live
+function tickShopAnimations() {
+  animFrame++;
+  // Always update player color every frame —
+  // animated skins need per-frame updates, solid colors need it on equip.
+  // This is cheap and ensures color is always in sync with shop state.
+  if (gameRunning && playerPieces.length) {
+    const c = getPlayerColor();
+    playerPieces.forEach(p => p.color = c);
+  }
+}
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 20 │ SETTINGS (toggles, stats, reset, SFX)     ██
+// ████████████████████████████████████████████████████████████
+
+// Load persisted settings
+const settingsData = lsGet('bulb_settings', {});
+let sfxOn        = settingsData.sfx        ?? false; // SFX off by default (no audio files needed)
+let showLB       = settingsData.leaderboard ?? true;
+let showXPBar    = settingsData.xpbar       ?? true;
+
+function saveSetting(key, val) {
+  settingsData[key] = val;
+  localStorage.setItem('bulb_settings', JSON.stringify(settingsData));
+  if (key === 'sfx')         sfxOn    = val;
+  if (key === 'leaderboard') showLB   = val;
+  if (key === 'xpbar')       showXPBar = val;
+  applySettings();
+}
+
+function applySettings() {
+  // Leaderboard visibility during game
+  const lb = document.getElementById('leaderboard');
+  if (lb) lb.style.display = (gameRunning && showLB) ? 'block' : (gameRunning ? 'none' : 'none');
+  // XP bar visibility
+  const xb = document.getElementById('xpBar');
+  if (xb) xb.style.display = showXPBar ? 'block' : 'none';
+}
+
+function openSettings() {
+  // Sync toggles to current state
+  document.getElementById('sfxToggle').checked = sfxOn;
+  document.getElementById('lbToggle').checked  = showLB;
+  document.getElementById('xpToggle').checked  = showXPBar;
+  // Show name
+  const name = localStorage.getItem('bulb_player_name') || '—';
+  document.getElementById('settingsNameDisplay').textContent = name;
+  // Stats
+  document.getElementById('statLevel').textContent    = level;
+  document.getElementById('statCoins').textContent    = coins;
+  document.getElementById('statBestMass').textContent = localStorage.getItem('bulb_best_mass') || '0';
+  document.getElementById('statGames').textContent    = localStorage.getItem('bulb_games')     || '0';
+  document.getElementById('statWins').textContent     = localStorage.getItem('bulb_wins')      || '0';
+
+  renderLocalScores();
+  document.getElementById('settingsScreen').style.display = 'flex';
+}
+
+function closeSettings() {
+  document.getElementById('settingsScreen').style.display = 'none';
+}
+
+function resetName() {
+  localStorage.removeItem('bulb_player_name');
+  document.getElementById('nameInput').value = '';
+  document.getElementById('settingsNameDisplay').textContent = '—';
+  showToast('✅ Name cleared — enter a new one on the menu!');
+}
+
+function resetProgress() {
+  if (!confirm('Reset your XP, level and coins? Your skins stay.')) return;
+  xp = 0; level = 1; coins = 0;
+  localStorage.setItem('bulb_xp', '0');
+  localStorage.setItem('bulb_level', '1');
+  localStorage.setItem('bulb_coins', '0');
+  document.getElementById('statLevel').textContent = '1';
+  document.getElementById('statCoins').textContent = '0';
+  showToast('✅ Progress reset!');
+}
+
+function resetEverything() {
+  if (!confirm('Wipe EVERYTHING? Name, skins, progress — all gone.')) return;
+  localStorage.clear();
+  location.reload();
+}
+
+// ── Stats tracking ──────────────────────────────────────────
+function recordGameStart() {
+  const g = parseInt(localStorage.getItem('bulb_games') || '0');
+  localStorage.setItem('bulb_games', g + 1);
+}
+
+function recordBestMass(mass) {
+  const val  = parseInt(mass) || 0;
+  const best = parseInt(localStorage.getItem('bulb_best_mass') || '0');
+  if (val > best) localStorage.setItem('bulb_best_mass', val);
+
+  // Also record into local top-10 leaderboard for this computer
+  const name   = localStorage.getItem('bulb_player_name') || 'Anonymous';
+  const scores = lsGet('bulb_local_scores', []);
+  scores.push({ name, mass: val, date: new Date().toLocaleDateString() });
+  // Keep only top 10 by mass
+  scores.sort((a, b) => b.mass - a.mass);
+  scores.splice(10);
+  localStorage.setItem('bulb_local_scores', JSON.stringify(scores));
+}
+
+function renderLocalScores() {
+  const card = document.getElementById('localScoresCard');
+  if (!card) return;
+  const scores = lsGet('bulb_local_scores', []);
+  if (!scores.length) {
+    card.innerHTML = `<div style="padding:14px 18px;font-size:0.75rem;color:rgba(255,255,255,0.3);text-align:center">No scores yet — play a game!</div>`;
+    return;
+  }
+  const medals = ['🥇','🥈','🥉'];
+  card.innerHTML = scores.map((s, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 18px;
+      border-bottom:${i < scores.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none'}">
+      <span style="font-size:0.9rem;width:22px;text-align:center">${medals[i] || `${i+1}.`}</span>
+      <span style="flex:1;font-size:0.82rem;font-weight:700;color:#fff">${s.name}</span>
+      <span style="font-family:'Orbitron',sans-serif;font-size:0.72rem;color:#5dcc7a">${s.mass.toLocaleString()}</span>
+      <span style="font-size:0.65rem;color:rgba(255,255,255,0.25);margin-left:4px">${s.date}</span>
+    </div>`).join('');
+}
+
+// ── SFX — generated with Web Audio API (no files needed) ────
+const _audioCtx = window.AudioContext ? new AudioContext() : null;
+
+function playSFX(type) {
+  if (!sfxOn || !_audioCtx) return;
+  const osc  = _audioCtx.createOscillator();
+  const gain = _audioCtx.createGain();
+  osc.connect(gain); gain.connect(_audioCtx.destination);
+  const now = _audioCtx.currentTime;
+
+  if (type === 'eat') {
+    // Short rising blip — satisfying pop
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc.start(now); osc.stop(now + 0.1);
+  } else if (type === 'eatbot') {
+    // Deeper thud — eating a bot feels heavier
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.18);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  } else if (type === 'death') {
+    // Descending wail
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(60, now + 0.5);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc.start(now); osc.stop(now + 0.5);
+  } else if (type === 'levelup') {
+    // Cheerful ascending chord
+    [523, 659, 784].forEach((freq, i) => {
+      const o = _audioCtx.createOscillator();
+      const g = _audioCtx.createGain();
+      o.connect(g); g.connect(_audioCtx.destination);
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0, now + i * 0.08);
+      g.gain.linearRampToValueAtTime(0.15, now + i * 0.08 + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.3);
+      o.start(now + i * 0.08); o.stop(now + i * 0.08 + 0.35);
+    });
+    return;
+  } else if (type === 'split') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(500, now);
+    osc.frequency.exponentialRampToValueAtTime(250, now + 0.12);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.start(now); osc.stop(now + 0.12);
+  }
+}
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 21 │ MULTIPLAYER (PeerJS rooms, lobby, sync)    ██
+// ████████████████████████████████████████████████████████████
+//  MULTIPLAYER — Private Rooms via PeerJS (WebRTC peer-to-peer)
+//
+//  Architecture:
+//  HOST: runs the full game simulation, broadcasts state to clients
+//  CLIENT: sends input to host, receives state and renders it
+//
+//  Max 8 players per room. Room code = first 6 chars of host's peer ID.
+// ═══════════════════════════════════════════════════════════════
+
+const MAX_ROOM_PLAYERS = 8;
+const PLAYER_COLORS = ['#5dcc7a','#5bc8fa','#ff6b9d','#ffd166','#a29bfe','#ff9f43','#fd79a8','#e17055'];
+
+let peer          = null;   // our PeerJS peer
+let hostConn      = null;   // client → host connection
+let clientConns   = [];     // host's connections to each client
+let isHost        = false;
+let inRoom        = false;
+let roomPlayers   = [];     // [{ id, name, color }]
+let myRoomId      = null;   // our peer ID
+let mpInputs      = {};     // host stores latest input from each client peer id
+
+// ── Open/close room screen ──────────────────────────────────
+function openRooms() {
+  document.getElementById('roomScreen').style.display = 'flex';
+}
+function closeRooms() {
+  document.getElementById('roomScreen').style.display = 'none';
+  document.getElementById('joinPanel').style.display = 'none';
+}
+function showCreate() {
+  document.getElementById('joinPanel').style.display = 'none';
+  createRoom();
+}
+function showJoin() {
+  document.getElementById('joinPanel').style.display = 'block';
+  document.getElementById('roomCodeInput').focus();
+}
+
+// ── Initialise PeerJS peer ────────────────────────────────────
+// ICE server config — multiple STUN + TURN servers so school firewalls can't block all of them.
+// TURN servers relay traffic through a server instead of direct peer-to-peer,
+// which bypasses most corporate/school NAT firewalls completely.
+const ICE_SERVERS = {
+  iceServers: [
+    // Google STUN (often blocked at schools but try first — it's fast)
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    // Open Relay free TURN servers — these work even behind strict firewalls
+    // because traffic goes through port 443 (same as HTTPS, almost never blocked)
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:443?transport=tcp', // TCP fallback for strict firewalls
+        'turns:openrelay.metered.ca:443',              // TLS version
+      ],
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    // Cloudflare STUN — reliable and rarely blocked
+    { urls: 'stun:stun.cloudflare.com:3478' },
+  ],
+  iceCandidatePoolSize: 10, // gather more candidates for better connectivity
+};
+
+function initPeer(onReady) {
+  if (peer && !peer.destroyed) { peer.destroy(); }
+  // Let PeerJS assign its own full random ID — no custom IDs.
+  // Custom IDs caused "unavailable-id" conflicts.
+  // We show a short preview in the UI but joiners copy/paste the FULL ID.
+  peer = new Peer(undefined, { debug: 0, config: ICE_SERVERS });
+  peer.on('open', id => { myRoomId = id; onReady(peer); });
+  peer.on('error', err => {
+    const msgs = {
+      'network':          '❌ Network error — check connection.',
+      'peer-unavailable': '❌ Room not found — check the ID.',
+      'server-error':     '❌ Server error — try again.',
+      'socket-error':     '❌ Blocked by firewall — try mobile data.',
+      'browser-incompatible': '❌ Use Chrome browser.',
+    };
+    const msg = msgs[err.type] || `❌ Error: ${err.type}`;
+    showToast(msg);
+    document.getElementById('joinStatus').textContent = msg;
+  });
+}
+
+// ── CREATE ROOM ───────────────────────────────────────────────
+function createRoom() {
+  const name = nameInput.value.trim();
+  if (!name) { showToast('⚠️ Enter your name first!'); return; }
+  showToast('⏳ Creating room…');
+
+  initPeer(p => {
+    isHost      = true;
+    inRoom      = true;
+    roomPlayers = [{ id: myRoomId, name, color: PLAYER_COLORS[0] }];
+    mpInputs    = {};
+
+    p.on('connection', conn => {
+      if (roomPlayers.length >= MAX_ROOM_PLAYERS) {
+        conn.send({ type: 'full' }); conn.close(); return;
+      }
+      conn.on('open', () => {
+        const playerColor = PLAYER_COLORS[roomPlayers.length % PLAYER_COLORS.length];
+        clientConns.push(conn);
+        conn.on('data', data => {
+          if (data.type === 'join') {
+            roomPlayers.push({ id: conn.peer, name: data.name, color: playerColor });
+            mpInputs[conn.peer] = { x: 0, y: 0 };
+            broadcastToAll({ type: 'lobby', players: roomPlayers });
+            updateLobbyUI();
+            conn.send({ type: 'joined', players: roomPlayers, yourId: conn.peer });
+          } else if (data.type === 'input') {
+            mpInputs[conn.peer] = data.dir;
+          } else if (data.type === 'ping') {
+            conn.send({ type: 'pong' }); // host echoes ping back
+          } else if (data.type === 'pong') {
+            _currentLatency = Date.now() - _lastPingTime;
+            _adjustNetworkSpeed(_currentLatency);
+          }
+        });
+        conn.on('close', () => {
+          clientConns = clientConns.filter(c => c !== conn);
+          roomPlayers = roomPlayers.filter(rp => rp.id !== conn.peer);
+          delete mpInputs[conn.peer];
+          broadcastToAll({ type: 'lobby', players: roomPlayers });
+          updateLobbyUI();
+        });
+      });
+    });
+
+    closeRooms();
+    openLobby(myRoomId, true); // pass FULL id — lobby shows it + copy button
+  });
+}
+
+// ── JOIN ROOM ─────────────────────────────────────────────────
+function joinRoom() {
+  const name = nameInput.value.trim();
+  // Accept full peer ID — trim whitespace, keep original casing (PeerJS IDs are lowercase)
+  const fullId = document.getElementById('roomCodeInput').value.trim().toLowerCase();
+  if (!name)   { showToast('⚠️ Enter your name first!'); return; }
+  if (!fullId) { showToast('⚠️ Paste the full room ID!'); return; }
+
+  document.getElementById('joinStatus').textContent = 'Connecting…';
+  initPeer(p => {
+    const conn = p.connect(fullId, { reliable: true });
+
+    // Timeout if no connection after 10s
+    const timeout = setTimeout(() => {
+      if (!hostConn) {
+        document.getElementById('joinStatus').textContent = '❌ Timed out. Check the ID or network.';
+        conn.close();
+      }
+    }, 10000);
+
+    conn.on('open', () => {
+      clearTimeout(timeout);
+      hostConn = conn;
+      conn.send({ type: 'join', name });
+      document.getElementById('joinStatus').textContent = '✅ Connected! Waiting for host…';
+    });
+
+    conn.on('close', () => { if (inRoom) { leaveRoom(); showToast('❌ Host disconnected. Returning to menu.'); } });
+    conn.on('error', () => {
+      clearTimeout(timeout);
+      document.getElementById('joinStatus').textContent = '❌ Could not connect. Check the ID.';
+    });
+
+    // Heartbeat: if no data from host for 8 seconds during game, assume disconnect
+    let _lastHostMsg = Date.now();
+    const _heartbeatCheck = setInterval(() => {
+      if (!inRoom || !gameRunning) { clearInterval(_heartbeatCheck); return; }
+      if (Date.now() - _lastHostMsg > 8000) {
+        clearInterval(_heartbeatCheck);
+        leaveRoom();
+        showToast('❌ Connection to host lost. Returned to menu.');
+      }
+    }, 2000);
+
+    // Update heartbeat timestamp on any data received
+    conn.on('data', data => {
+      _lastHostMsg = Date.now(); // any packet = host is alive
+      if (data.type === 'full') {
+        showToast('❌ Room is full!');
+        document.getElementById('joinStatus').textContent = 'Room is full.';
+        conn.close(); return;
+      }
+      if (data.type === 'joined') {
+        isHost = false; inRoom = true;
+        roomPlayers = data.players; myRoomId = data.yourId;
+        closeRooms();
+        openLobby(fullId, false);
+        updateLobbyUI();
+      }
+      if (data.type === 'lobby')  { roomPlayers = data.players; updateLobbyUI(); }
+      if (data.type === 'start')  { roomPlayers = data.players; startMultiplayerGame(data.spawnIndex); }
+      if (data.type === 'state')  { renderMpState(data); }
+      if (data.type === 'S')      { renderMpState(data); }
+      if (data.type === 'initialSync') { applyInitialSync(data); }
+      if (data.type === 'kicked') { leaveRoom(); showToast('Disconnected from room.'); }
+      if (data.type === 'ping')   { hostConn.send({ type: 'pong' }); }
+      if (data.type === 'pong')   { _currentLatency = Date.now() - _lastPingTime; _adjustNetworkSpeed(_currentLatency); }
+    });
+
+  }); // end initPeer callback
+} // end joinRoom
+
+// ── LOBBY UI ──────────────────────────────────────────────────
+function openLobby(fullId, isH) {
+  // Show full ID — it's what joiners need to paste
+  const display = document.getElementById('lobbyCode');
+  display.textContent = fullId;
+  display.style.fontSize = fullId.length > 10 ? '0.85rem' : '2.4rem';
+  display.style.letterSpacing = fullId.length > 10 ? '2px' : '8px';
+  display.style.wordBreak = 'break-all';
+
+  document.getElementById('lobbyCodeLabel').textContent =
+    isH ? '👆 Tap to copy — share with friends' : 'Waiting for host to start…';
+
+  // Tap to copy the full ID
+  display.style.cursor = 'pointer';
+  display.onclick = () => {
+    navigator.clipboard?.writeText(fullId).then(() => showToast('✅ ID copied!')).catch(() => {
+      // Fallback for school browsers that block clipboard
+      const ta = document.createElement('textarea');
+      ta.value = fullId; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      showToast('✅ ID copied!');
+    });
+  };
+
+  document.getElementById('lobbyStartBtn').style.display = isH ? 'block' : 'none';
+  document.getElementById('lobbyScreen').style.display   = 'flex';
+  updateLobbyUI();
+}
+
+function updateLobbyUI() {
+  const list = document.getElementById('lobbyPlayerList');
+  if (!roomPlayers.length) {
+    list.innerHTML = '<div class="lobby-waiting">Waiting for players…</div>';
+    return;
+  }
+  list.innerHTML = roomPlayers.map((p, i) => `
+    <div class="lobby-player-row">
+      <div class="lobby-player-dot" style="background:${p.color}"></div>
+      <span class="lobby-player-name">${p.name}</span>
+      <span class="lobby-player-badge">${i === 0 ? '👑 HOST' : 'PLAYER'}</span>
+    </div>`).join('');
+}
+
+// ── HOST STARTS GAME ─────────────────────────────────────────
+function hostStartGame() {
+  if (!isHost || roomPlayers.length < 1) return;
+  // Send start signal with each player's spawn index
+  broadcastToAll({ type: 'start', players: roomPlayers, spawnIndex: -1 });
+  // Host starts with spawnIndex 0, clients get their own index from their join order
+  clientConns.forEach((conn, i) => {
+    conn.send({ type: 'start', players: roomPlayers, spawnIndex: i + 1 });
+  });
+  startMultiplayerGame(0);
+}
+
+function broadcastToAll(data) {
+  clientConns.forEach(c => { try { c.send(data); } catch(e) {} });
+}
+
+// ── START MULTIPLAYER GAME ────────────────────────────────────
+function startMultiplayerGame(spawnIndex) {
+  document.getElementById('lobbyScreen').style.display = 'none';
+  const name = nameInput.value.trim();
+  const myColor = roomPlayers[spawnIndex]?.color || getPlayerColor();
+
+  // Use existing startGame flow but inject room player blobs
+  document.getElementById('menuScreen').style.display  = 'none';
+  document.getElementById('deathScreen').classList.remove('show');
+  document.getElementById('gameScreen').style.display  = 'block';
+  document.getElementById('hud').style.display         = 'block';
+
+  const isTouch = 'ontouchstart' in window;
+  joystickBase.style.display = isTouch ? 'block' : 'none';
+  _splitBtnEl.style.display  = isTouch ? 'flex'  : 'none';
+  _mergeBtnEl.style.display  = isTouch ? 'flex'  : 'none';
+  _ejectBtnEl.style.display  = isTouch ? 'flex'  : 'none';
+
+  if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+
+  menuAnimating = false;
+
+  if (inRoom && !isHost) {
+    // ── CLIENT: empty world — host is the authority ──
+    // Don't generate food or bots. Wait for host's initialSync.
+    blobsEatenCount = 0; ejectedMass = []; particles = [];
+    viruses     = Array.from({ length: VIRUS_COUNT }, spawnVirus);
+    playerPieces = [{
+      name, x: WORLD_SIZE/2, y: WORLD_SIZE/2,
+      r: 22, vx: 0, vy: 0,
+      color: myColor, mass: 0,
+      team: -1, mergeTimer: 0,
+    }];
+    if (spawnIndex > 0) {
+      const a = (spawnIndex / MAX_ROOM_PLAYERS) * Math.PI * 2;
+      playerPieces[0].x = WORLD_SIZE/2 + Math.cos(a) * 600;
+      playerPieces[0].y = WORLD_SIZE/2 + Math.sin(a) * 600;
+    }
+    foodPellets = []; // host will send these
+    bots        = []; // host will send these
+    cam.x = WORLD_SIZE/2; cam.y = WORLD_SIZE/2; cam.scale = 1;
+    inputDir = { x: 0, y: 0 };
+  } else {
+    // ── HOST: full world ──
+    initGame(name);
+    recordGameStart();
+    playerPieces.forEach(p => p.color = myColor);
+    if (spawnIndex > 0) {
+      const a = (spawnIndex / MAX_ROOM_PLAYERS) * Math.PI * 2;
+      playerPieces[0].x = WORLD_SIZE/2 + Math.cos(a) * 600;
+      playerPieces[0].y = WORLD_SIZE/2 + Math.sin(a) * 600;
+    }
+    mpInputs[myRoomId] = { x: 0, y: 0 };
+
+    // Send full world state to all clients immediately so they start in sync
+    setTimeout(() => {
+      broadcastToAll({
+        type: 'initialSync',
+        food: foodPellets.map(f => ({ x:f.x, y:f.y, r:f.r, color:f.color })),
+        bots: bots.map(b => ({ x:b.x, y:b.y, r:b.r, color:b.color, name:b.name, mass:b.mass, team:b.team })),
+      });
+    }, 200);
+  }
+
+  updateJoyCenter();
+  gameRunning = true;
+  document.getElementById('leaderboard').style.display = showLB ? 'block' : 'none';
+  document.getElementById('xpBar').style.display = showXPBar ? 'block' : 'none';
+
+  gameLoop();
+
+  // Client sends input to host 20x/second
+  if (inRoom && !isHost && hostConn) {
+    setInterval(() => {
+      if (!inRoom || !hostConn) return;
+      hostConn.send({ type: 'input', dir: inputDir });
+    }, 33);
+    _startClientPingLoop(); // client pings host to measure latency
+  }
+
+  // Host starts adaptive broadcast
+  if (isHost) {
+    _startBroadcast();
+    _startPingLoop(); // host pings clients to measure latency
+  }
+}
+
+// ── MINIMAP ──────────────────────────────────────────────────
+// Only shown on PC (non-touch). Draws the full 9000×9000 world
+// at tiny scale so you always know where you are.
+const _minimapEl     = document.getElementById('minimap');
+const _minimapCanvas = document.getElementById('minimapCanvas');
+const _mmCtx         = _minimapCanvas.getContext('2d');
+const MM_SIZE        = 140; // must match CSS
+_minimapCanvas.width  = MM_SIZE;
+_minimapCanvas.height = MM_SIZE;
+
+function drawMinimap() {
+  if (!gameRunning && !_spectating) return;
+  const scale = MM_SIZE / WORLD_SIZE;
+  _mmCtx.clearRect(0, 0, MM_SIZE, MM_SIZE);
+
+  // Background
+  _mmCtx.fillStyle = 'rgba(0,0,0,0.3)';
+  _mmCtx.fillRect(0, 0, MM_SIZE, MM_SIZE);
+
+  // Food dots — tiny grey dots
+  _mmCtx.fillStyle = 'rgba(255,255,255,0.18)';
+  foodPellets.forEach((f, i) => {
+    if (i % 6 !== 0) return; // only draw every 6th to keep it fast
+    _mmCtx.fillRect(f.x * scale - 0.5, f.y * scale - 0.5, 1, 1);
+  });
+
+  // Viruses — tiny green dots
+  _mmCtx.fillStyle = '#00b894';
+  viruses.forEach(v => {
+    _mmCtx.beginPath();
+    _mmCtx.arc(v.x * scale, v.y * scale, 2, 0, Math.PI * 2);
+    _mmCtx.fill();
+  });
+
+  // Bots — colored dots
+  bots.forEach(b => {
+    _mmCtx.fillStyle = b.color;
+    _mmCtx.beginPath();
+    _mmCtx.arc(b.x * scale, b.y * scale, Math.max(1.5, b.r * scale * 1.5), 0, Math.PI * 2);
+    _mmCtx.fill();
+  });
+
+  // Player — bright white dot with outline
+  if (playerPieces.length) {
+    const cx = playerPieces.reduce((s,p) => s + p.x, 0) / playerPieces.length;
+    const cy = playerPieces.reduce((s,p) => s + p.y, 0) / playerPieces.length;
+    const pr = Math.max(2, playerPieces[0].r * scale * 2);
+    _mmCtx.strokeStyle = '#fff';
+    _mmCtx.lineWidth   = 1.5;
+    _mmCtx.fillStyle   = playerPieces[0].color;
+    _mmCtx.beginPath();
+    _mmCtx.arc(cx * scale, cy * scale, pr, 0, Math.PI * 2);
+    _mmCtx.fill();
+    _mmCtx.stroke();
+  }
+
+  // Camera viewport rectangle — shows what area you're currently viewing
+  const vW = (gW / cam.scale) * scale;
+  const vH = (gH / cam.scale) * scale;
+  const vX = (cam.x - gW / cam.scale / 2) * scale;
+  const vY = (cam.y - gH / cam.scale / 2) * scale;
+  _mmCtx.strokeStyle = 'rgba(255,255,255,0.25)';
+  _mmCtx.lineWidth   = 1;
+  _mmCtx.strokeRect(vX, vY, vW, vH);
+}
+// Measures real ping every 5s and adjusts broadcast speed automatically.
+// Fast Wi-Fi → 30ms ticks. School Wi-Fi → 60ms. Very slow → 80ms.
+let _lastPingTime   = 0;
+let _currentLatency = 50;
+let _broadcastInterval = 50; // ms — starts balanced, adapts after first ping
+let _broadcastTimer    = null;
+
+function _startBroadcast() {
+  if (_broadcastTimer) clearInterval(_broadcastTimer);
+  const interval = _broadcastInterval; // capture current value — prevents closure bugs
+  _broadcastTimer = setInterval(() => {
+    if (!isHost || !inRoom || !gameRunning) return;
+    const state = {
+      type: 'S',
+      P: playerPieces.map(p => [Math.floor(p.x), Math.floor(p.y), Math.floor(p.r), Math.floor(p.mass)]),
+      B: bots.map(b => [Math.floor(b.x), Math.floor(b.y), Math.floor(b.r), Math.floor(b.mass || 0)]),
+      F: foodPellets.filter((_,i) => i % 8 === 0).map(f => [Math.floor(f.x), Math.floor(f.y)]),
+    };
+    broadcastToAll(state);
+  }, interval);
+  console.log(`[Net] Broadcast started at ${interval}ms`);
+}
+
+function _stopBroadcast() {
+  if (_broadcastTimer) { clearInterval(_broadcastTimer); _broadcastTimer = null; }
+}
+
+function _adjustNetworkSpeed(latency) {
+  const prev = _broadcastInterval;
+  if      (latency < 40)  _broadcastInterval = 30;  // fast — fibre/strong Wi-Fi
+  else if (latency < 80)  _broadcastInterval = 45;  // balanced
+  else if (latency < 150) _broadcastInterval = 60;  // slow — school Wi-Fi
+  else                    _broadcastInterval = 80;  // very slow — drop rate
+  if (prev !== _broadcastInterval) {
+    console.log(`[Net] Latency ${latency}ms → tick ${_broadcastInterval}ms`);
+    _stopBroadcast();
+    _startBroadcast();
+  }
+}
+
+// Ping loop — host sends to all clients every 5s
+function _startPingLoop() {
+  setInterval(() => {
+    if (!isHost || !inRoom) return;
+    _lastPingTime = Date.now();
+    broadcastToAll({ type: 'ping' });
+  }, 5000);
+}
+
+// Client ping loop — client pings host every 5s
+function _startClientPingLoop() {
+  setInterval(() => {
+    if (!inRoom || isHost || !hostConn) return;
+    _lastPingTime = Date.now();
+    hostConn.send({ type: 'ping' });
+  }, 5000);
+}
+
+// ── CLIENT: apply host's world state every broadcast ─────────
+let mpState = null;
+function renderMpState(data) {
+  // Compressed format: P = player pieces, B = bots, F = food samples
+  if (data.B) {
+    // Teleport bots to host positions — keep existing name/color from initialSync
+    data.B.forEach(([x, y, r, mass], i) => {
+      if (bots[i]) {
+        bots[i].x = x; bots[i].y = y;
+        bots[i].r = r; bots[i].mass = mass;
+      }
+    });
+  }
+  if (data.F) {
+    data.F.forEach(([x, y], i) => {
+      const idx = i * 8;
+      if (foodPellets[idx]) {
+        foodPellets[idx].x = x;
+        foodPellets[idx].y = y;
+      }
+    });
+  }
+  mpState = data;
+}
+
+// ── CLIENT: handle initialSync — full world from host ────────
+function applyInitialSync(data) {
+  foodPellets = data.food.map(f => ({ x:f.x, y:f.y, r:f.r, color:f.color }));
+  bots = data.bots.map((b, i) => ({
+    x: b.x, y: b.y, r: b.r,
+    color: b.color, name: b.name, mass: b.mass || 0,
+    vx: 0, vy: 0, team: b.team ?? -1,
+    targetType: 'food', targetFood: null,
+    wanderAngle: 0, wanderTimer: 0, chasing: false, chaseTimer: 0,
+  }));
+}
+
+// ── Audio unlock on first interaction ─────────────────────
+// Browsers block AudioContext until user interacts. We attach a
+// one-time listener to the whole document so ANY first tap/click
+// unlocks it — not just the Play button.
+document.addEventListener('click', function _unlockAudio() {
+  if (_audioCtx && _audioCtx.state === 'suspended') {
+    _audioCtx.resume();
+  }
+  document.removeEventListener('click', _unlockAudio);
+}, { once: true });
+
+document.addEventListener('touchstart', function _unlockAudioTouch() {
+  if (_audioCtx && _audioCtx.state === 'suspended') {
+    _audioCtx.resume();
+  }
+  document.removeEventListener('touchstart', _unlockAudioTouch);
+}, { once: true, passive: true });
+function leaveRoom() {
+  inRoom = false; isHost = false;
+  _stopBroadcast();
+  if (hostConn) { hostConn.close(); hostConn = null; }
+  clientConns.forEach(c => c.close());
+  clientConns = []; roomPlayers = []; mpInputs = {};
+  if (peer) { peer.destroy(); peer = null; }
+  document.getElementById('lobbyScreen').style.display = 'none';
+  document.getElementById('roomScreen').style.display  = 'none';
+  if (gameRunning) goToMenu();
+}
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 22 │ DEATH TIPS                                 ██
+// ████████████████████████████████████████████████████████████
+//  DEATH TIPS — 40 painfully obvious tips shown on death screen
+// ─────────────────────────────────────────────────────────────
+const DEATH_TIPS = [
+  "Try not to get eaten next time.",
+  "To win, simply be the biggest blob. Easy.",
+  "Touching bigger blobs is generally a bad idea.",
+  "If you see the death screen, you have died.",
+  "Pro tip: surviving longer increases your chance of not dying.",
+  "Being eaten is just the game's way of saying you lost.",
+  "Next time, consider eating others instead of being eaten.",
+  "Have you tried being bigger? Bigger blobs tend to win.",
+  "Moving away from danger is a strategy worth considering.",
+  "The blob that ate you was, statistically, bigger than you.",
+  "Food pellets exist. Eating them makes you grow. Just saying.",
+  "You can't win if you're dead. This is known.",
+  "If a blob is chasing you, it probably wants to eat you.",
+  "Splitting into 12 pieces and then getting confused is valid strategy.",
+  "The map has edges. Try not to forget that.",
+  "Fun fact: you can eject mass. It doesn't always help, but you can.",
+  "Smaller blobs run faster. Growing has consequences.",
+  "In this game, size matters. Scientifically proven.",
+  "The leaderboard exists. Being on it requires not dying immediately.",
+  "You lasted longer than last time. Probably.",
+  "Your blob gave everything. Mostly its life.",
+  "Getting eaten by {killer} is arguably the worst way to go.",
+  "Viruses are spiky for a reason. That reason is you.",
+  "Next time try the 'don't get eaten' strat. It's meta right now.",
+  "There is no shame in dying. There is, however, this tip screen.",
+  "The merge button exists. Some say it's never been used correctly.",
+  "Fact: 100% of players who have died were touching another blob.",
+  "You were this close to winning. Probably not, but maybe.",
+  "Your final mass was recorded. The universe is indifferent to it.",
+  "Studies show that blobs who eat more food grow larger. Revolutionary.",
+  "If you're reading this, your blob is gone. Sorry for your loss.",
+  "A wise blob once said: don't split near viruses. You ignored this.",
+  "Speed decreases as you grow. You were very slow. Draw your own conclusions.",
+  "You can hide inside viruses when small. You were not small enough.",
+  "{killer} is now living your best life.",
+  "Eating 1600 food pellets would have made you very big. Just an observation.",
+  "Team mode has allies. Solo mode does not. Choose accordingly.",
+  "Your blob was unique. Just like every other blob that has ever died.",
+  "Three things are certain: death, taxes, and getting eaten by {killer}.",
+  "Next time will be different. It won't be, but the optimism is nice.",
+];
+
+function getRandomTip(killerName = 'someone') {
+  const tip = DEATH_TIPS[Math.floor(Math.random() * DEATH_TIPS.length)];
+  return tip.replace(/\{killer\}/g, killerName);
+}
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 23 │ DAILY CHALLENGES                           ██
+// ████████████████████████████████████████████████████████████
+//  DAILY CHALLENGE — same challenge for all players each day
+//  Uses date string as a seed (same as Wordle) so everyone
+//  gets the same challenge on the same day. School competition!
+// ─────────────────────────────────────────────────────────────
+const DAILY_CHALLENGES = [
+  { task: 'Eat 200 food pellets in one life', goal: 200, type: 'food',   icon: '🍬' },
+  { task: 'Reach 500 mass in one life',       goal: 500, type: 'mass',   icon: '⚖️' },
+  { task: 'Eat 3 bots in one session',        goal: 3,   type: 'bots',   icon: '💀' },
+  { task: 'Survive for 2 minutes',            goal: 120, type: 'time',   icon: '⏱️' },
+  { task: 'Split 10 times in one life',       goal: 10,  type: 'splits', icon: '✂️' },
+  { task: 'Reach level 3',                    goal: 3,   type: 'level',  icon: '⬆️' },
+  { task: 'Eject mass 5 times',              goal: 5,   type: 'eject',  icon: '🟡' },
+  { task: 'Eat 500 food pellets in one life', goal: 500, type: 'food',   icon: '🍬' },
+  { task: 'Eat 5 bots in one session',        goal: 5,   type: 'bots',   icon: '💀' },
+  { task: 'Reach 1000 mass in one life',      goal: 1000,type: 'mass',   icon: '⚖️' },
+  { task: 'Pop a virus',                      goal: 1,   type: 'virus',  icon: '💥' },
+  { task: 'Survive for 5 minutes',            goal: 300, type: 'time',   icon: '⏱️' },
+  { task: 'Eat 10 bots in one session',       goal: 10,  type: 'bots',   icon: '💀' },
+  { task: 'Reach 2000 mass in one life',      goal: 2000,type: 'mass',   icon: '⚖️' },
+  { task: 'Split 20 times in one life',       goal: 20,  type: 'splits', icon: '✂️' },
+  { task: 'Eject mass 15 times',             goal: 15,  type: 'eject',  icon: '🟡' },
+  { task: 'Eat 100 food pellets in one life', goal: 100, type: 'food',   icon: '🍬' },
+  { task: 'Reach level 5',                    goal: 5,   type: 'level',  icon: '⬆️' },
+  { task: 'Pop 3 viruses in one session',     goal: 3,   type: 'virus',  icon: '💥' },
+  { task: 'Eat 1000 food pellets in one life',goal: 1000,type: 'food',   icon: '🍬' },
+];
+
+function getDailyChallenge() {
+  // Date string as seed — same result for every player on the same day
+  const today = new Date().toDateString(); // e.g. "Tue Apr 21 2026"
+  let seed = 0;
+  for (let i = 0; i < today.length; i++) seed += today.charCodeAt(i);
+  return DAILY_CHALLENGES[seed % DAILY_CHALLENGES.length];
+}
+
+// Daily challenge progress tracking
+let challengeProgress = 0;
+let challengeCompleted = lsGet('bulb_challenge_done', null);
+let challengeDate      = localStorage.getItem('bulb_challenge_date') || '';
+
+function initDailyChallenge() {
+  const today = new Date().toDateString();
+  if (challengeDate !== today) {
+    // New day — reset progress
+    challengeProgress = 0;
+    challengeCompleted = null;
+    challengeDate = today;
+    localStorage.setItem('bulb_challenge_date', today);
+    localStorage.setItem('bulb_challenge_progress', '0');
+    localStorage.removeItem('bulb_challenge_done');
+  } else {
+    challengeProgress = parseInt(localStorage.getItem('bulb_challenge_progress') || '0');
+  }
+}
+
+function updateChallengeProgress(type, amount = 1) {
+  if (challengeCompleted) return; // already done today
+  const ch = getDailyChallenge();
+  if (ch.type !== type) return;
+  challengeProgress = Math.min(challengeProgress + amount, ch.goal);
+  localStorage.setItem('bulb_challenge_progress', challengeProgress);
+  if (challengeProgress >= ch.goal) {
+    challengeCompleted = true;
+    localStorage.setItem('bulb_challenge_done', 'true');
+    // Reward: 150 coins
+    coins += 50;
+    localStorage.setItem('bulb_coins', coins);
+    showToast(`🎉 Daily Challenge complete! +50 🪙`);
+  }
+}
+
+// Call on load
+initDailyChallenge();
+// Update menu level badge immediately on load
+const _menuBadge = document.getElementById('menuLevelBadge');
+if (_menuBadge) _menuBadge.textContent = `LV ${level} · 🪙 ${coins}`;
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 24 │ CHALLENGE SCREEN                           ██
+// ████████████████████████████████████████████████████████████
+// ─────────────────────────────────────────────────────────────
+function openChallenges() {
+  const ch   = getDailyChallenge();
+  const done = !!challengeCompleted;
+  const pct  = Math.min(100, Math.round((challengeProgress / ch.goal) * 100));
+
+  // Date header
+  document.getElementById('challengeDateLabel').textContent =
+    `Today — ${new Date().toDateString()}`;
+
+  // Card content
+  document.getElementById('challengeIcon').textContent      = ch.icon;
+  document.getElementById('challengeTaskText').textContent  = ch.task;
+  document.getElementById('challengeProgressFill').style.width = `${pct}%`;
+  document.getElementById('challengeProgressLabel').textContent =
+    `${Math.min(challengeProgress, ch.goal)} / ${ch.goal}`;
+
+  // Done state
+  const card = document.getElementById('challengeCard');
+  card.className = done ? 'challenge-card done' : 'challenge-card';
+  document.getElementById('challengeDoneBadge').style.display = done ? 'block' : 'none';
+
+  // Tip text
+  const tips = {
+    food:   'Eat the small coloured dots scattered around the map. Move over them to absorb them.',
+    mass:   'Eat food and bots to grow. Your mass is shown at the top of the screen.',
+    bots:   'Find blobs smaller than you and run into them. The bigger you are, the easier this is.',
+    time:   'Simply stay alive. Hide inside viruses if bigger blobs chase you.',
+    splits: 'Press SPACE (PC) or the SPLIT button (mobile). You need enough mass to split.',
+    eject:  'Press W (PC) or the EJECT button (mobile) to shoot a mass blob forward.',
+    virus:  'Run your big blob into a green spiky circle. Warning — you will explode into pieces!',
+    level:  'Earn XP by eating food and bots. The XP bar is the thin line below your mass.',
+  };
+  document.getElementById('challengeTipBox').innerHTML =
+    `<strong>How to do it:</strong> ${tips[ch.type] || 'Play the game to make progress.'}`;
+
+  // Countdown timer — time remaining until midnight (next challenge)
+  updateChallengeTimer();
+
+  document.getElementById('challengeScreen').style.display = 'flex';
+}
+
+function updateChallengeTimer() {
+  const timerEl = document.getElementById('challengeTimer');
+  if (!timerEl) return;
+  const now       = new Date();
+  const midnight  = new Date(); midnight.setHours(24, 0, 0, 0);
+  const msLeft    = midnight - now;
+  const hLeft     = Math.floor(msLeft / 3600000);
+  const mLeft     = Math.floor((msLeft % 3600000) / 60000);
+  timerEl.textContent = `New challenge in: ${hLeft}h ${mLeft}m`;
+}
+
+function closeChallenges() {
+  document.getElementById('challengeScreen').style.display = 'none';
+}
+// ████████████████████████████████████████████████████████████
+// ██  AD SYSTEM — Rewarded ads for coins / revive             ██
+// ████████████████████████████████████████████████████████████
+// ─────────────────────────────────────────────────────────────
+// HOW TO ENABLE REAL ADS:
+//   1. Get approved for Google AdSense / AdMob
+//   2. Set AD_ENABLED = true
+//   3. Set AD_CLIENT to your pub-XXXXXXXXXXXXXXXX ID
+//   4. Set AD_SLOT   to your rewarded ad slot ID
+// Until then the simulated 5-second countdown works for demos.
+// ─────────────────────────────────────────────────────────────
+const AD_ENABLED = false;                    // ← flip to true once AdSense approves your site
+const AD_CLIENT  = 'ca-pub-3378819349831704'; // ✅ your real publisher ID
+const AD_SLOT    = '1234567890';              // ← replace with your rewarded ad slot ID once you create it
+const AD_DURATION = 5;              // seconds for simulated ad
+
+let _adRewardType  = null; // 'coins' or 'revive'
+let _adTimerHandle = null;
+let _adSecondsLeft = AD_DURATION;
+
+// Called when user taps "Watch Ad → +50 coins"
+function watchAdForCoins() {
+  _adRewardType = 'coins';
+  document.getElementById('adRewardText').innerHTML =
+    'Watch the full ad to earn <strong>+50 🪙 coins</strong> instantly.';
+  _startAd();
+}
+
+// Called when user taps "Watch Ad → Free Revive"
+function watchAdForRevive() {
+  _adRewardType = 'revive';
+  document.getElementById('adRewardText').innerHTML =
+    'Watch the full ad to earn a <strong>free Revive</strong> — come back with half your mass!';
+  _startAd();
+}
+
+function _startAd() {
+  _adSecondsLeft = AD_DURATION;
+  const overlay   = document.getElementById('adOverlay');
+  const skipBtn   = document.getElementById('adSkipBtn');
+  const timerEl   = document.getElementById('adTimerCount');
+  const fillEl    = document.getElementById('adProgressFill');
+
+  skipBtn.classList.remove('ready');
+  skipBtn.textContent = 'CLAIM REWARD';
+  timerEl.textContent = _adSecondsLeft;
+  fillEl.style.transition = 'none';
+  fillEl.style.width = '0%';
+  overlay.style.display = 'flex';
+
+  // If real AdSense rewarded ad is configured, try it
+  if (AD_ENABLED && window.adsbygoogle) {
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+      // Rewarded ad callback will call claimAdReward() on grant
+    } catch(e) { _runSimulatedAd(skipBtn, timerEl, fillEl); }
+  } else {
+    _runSimulatedAd(skipBtn, timerEl, fillEl);
+  }
+}
+
+function _runSimulatedAd(skipBtn, timerEl, fillEl) {
+  // Small delay so progress bar transition works
+  requestAnimationFrame(() => {
+    fillEl.style.transition = `width ${AD_DURATION}s linear`;
+    fillEl.style.width = '100%';
+  });
+
+  _adTimerHandle = setInterval(() => {
+    _adSecondsLeft--;
+    timerEl.textContent = Math.max(0, _adSecondsLeft);
+    if (_adSecondsLeft <= 0) {
+      clearInterval(_adTimerHandle);
+      skipBtn.classList.add('ready');
+    }
+  }, 1000);
+}
+
+function claimAdReward() {
+  // Safety: don't let them click before timer finishes
+  if (_adSecondsLeft > 0) return;
+  clearInterval(_adTimerHandle);
+  document.getElementById('adOverlay').style.display = 'none';
+
+  if (_adRewardType === 'coins') {
+    coins += 50;
+    localStorage.setItem('bulb_coins', coins);
+    showToast('🎉 +50 🪙 earned! Thanks for watching.');
+  } else if (_adRewardType === 'revive') {
+    // Give a free revive — store position from revive button dataset
+    const revBtn = document.getElementById('reviveBtn');
+    localStorage.setItem('bulb_revive_refill', 'true');
+    revBtn.style.display = 'block';
+    showToast('⚡ Free revive earned! Tap REVIVE to come back.');
+  }
+  _adRewardType = null;
+}
+
+// ████████████████████████████████████████████████████████████
+// ██  SECTION 25 │ TOAST                                      ██
+// ████████████████████████████████████████████████████████████
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
